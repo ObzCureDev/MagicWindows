@@ -32,3 +32,4 @@ Thumbs.db
 # Tauri
 src-tauri/target/
 src-tauri/gen/schemas
+docs/review/MAGICWINDOWS_TECH_REPORT_V1.html
