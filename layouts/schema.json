@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MagicWindows Keyboard Layout",
+  "description": "Defines an Apple keyboard layout for Windows installation",
+  "type": "object",
+  "required": ["id", "name", "locale", "localeId", "dllName", "detectionKeys", "keys"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^apple-[a-z]{2}-[a-z]+$",
+      "description": "Unique layout identifier (e.g., apple-fr-azerty)"
+    },
+    "name": {
+      "type": "object",
+      "required": ["en", "fr"],
+      "properties": {
+        "en": { "type": "string" },
+        "fr": { "type": "string" }
+      },
+      "description": "Display name in supported languages"
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}-[A-Z]{2}$",
+      "description": "BCP 47 locale tag (e.g., fr-FR)"
+    },
+    "localeId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}$",
+      "description": "Windows locale ID in hex (e.g., 0000040c for French)"
+    },
+    "dllName": {
+      "type": "string",
+      "maxLength": 8,
+      "pattern": "^[a-z0-9]+$",
+      "description": "DLL name without extension, max 8 chars (Windows limit)"
+    },
+    "description": {
+      "type": "object",
+      "properties": {
+        "en": { "type": "string" },
+        "fr": { "type": "string" }
+      }
+    },
+    "detectionKeys": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["eventCode", "prompt", "expectedBase"],
+        "properties": {
+          "eventCode": {
+            "type": "string",
+            "description": "JavaScript KeyboardEvent.code value (e.g., Backquote, Digit8)"
+          },
+          "prompt": {
+            "type": "object",
+            "required": ["en", "fr"],
+            "properties": {
+              "en": { "type": "string" },
+              "fr": { "type": "string" }
+            }
+          },
+          "expectedBase": {
+            "type": "string",
+            "description": "Character printed on the keycap (what the user expects to see)"
+          }
+        }
+      },
+      "description": "Keys used for auto-detection — positions with distinctive characters"
+    },
+    "keys": {
+      "type": "object",
+      "patternProperties": {
+        "^[0-9a-f]{2}$": {
+          "type": "object",
+          "required": ["vk", "cap", "base", "shift"],
+          "properties": {
+            "vk": { "type": "string", "description": "Virtual key name (e.g., VK_OEM_7)" },
+            "cap": { "type": "string", "enum": ["0", "1", "SGCap"], "description": "Caps Lock flag" },
+            "base": { "type": "string", "description": "Character in base state (Unicode hex or -1)" },
+            "shift": { "type": "string", "description": "Character with Shift" },
+            "ctrl": { "type": "string", "description": "Character with Ctrl" },
+            "altgr": { "type": "string", "description": "Character with AltGr (Right Alt)" },
+            "altgrShift": { "type": "string", "description": "Character with AltGr+Shift" }
+          }
+        }
+      },
+      "description": "Key mappings indexed by scancode (hex). Values are Unicode codepoints in hex (e.g., 0040 for @) or -1 for no output."
+    },
+    "deadKeys": {
+      "type": "object",
+      "patternProperties": {
+        "^[0-9a-f]{4}$": {
+          "type": "object",
+          "required": ["name", "combinations"],
+          "properties": {
+            "name": { "type": "string" },
+            "combinations": {
+              "type": "object",
+              "patternProperties": {
+                "^[0-9a-f]{4}$": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "description": "Dead key definitions. Key = dead char codepoint, value = base char -> result char mappings."
+    }
+  }
+}
