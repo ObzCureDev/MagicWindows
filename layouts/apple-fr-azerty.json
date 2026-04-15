@@ -58,7 +58,7 @@
     "0a": { "vk": "VK_9",        "cap": "0", "base": "00e7", "shift": "0039", "ctrl": "-1", "altgr": "00c7", "altgrShift": "00c1" },
     "0b": { "vk": "VK_0",        "cap": "0", "base": "00e0", "shift": "0030", "ctrl": "-1", "altgr": "00f8", "altgrShift": "00d8" },
     "0c": { "vk": "VK_OEM_4",    "cap": "0", "base": "0029", "shift": "00b0", "ctrl": "-1", "altgr": "007d", "altgrShift": "005d" },
-    "0d": { "vk": "VK_OEM_PLUS", "cap": "0", "base": "002d", "shift": "002b", "ctrl": "-1", "altgr": "2014", "altgrShift": "00b1" },
+    "0d": { "vk": "VK_OEM_PLUS", "cap": "0", "base": "002d", "shift": "005f", "ctrl": "-1", "altgr": "2014", "altgrShift": "00b1" },
 
     "10": { "vk": "VK_A",        "cap": "1", "base": "0061", "shift": "0041", "ctrl": "-1", "altgr": "00e6", "altgrShift": "00c6" },
     "11": { "vk": "VK_Z",        "cap": "1", "base": "007a", "shift": "005a", "ctrl": "-1", "altgr": "00e2", "altgrShift": "00c2" },
