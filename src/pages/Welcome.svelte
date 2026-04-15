@@ -30,7 +30,7 @@
 
 <div class="page">
   <div class="page__content">
-    <div class="welcome-logo">M</div>
+    <img src="/MagicWindows.png" alt="MagicWindows" class="welcome-logo" />
 
     <div class="page__header">
       <h1 class="page__title">{t(appState.lang, "welcome.title")}</h1>

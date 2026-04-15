@@ -107,14 +107,7 @@ body {
 .top-bar__title-icon {
   width: 22px;
   height: 22px;
-  background: linear-gradient(135deg, var(--color-accent), #5856d6);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: #fff;
-  font-weight: 700;
+  object-fit: contain;
 }
 
 /* ── Language Toggle ───────────────────────────────────────────────── */
@@ -654,18 +647,11 @@ body {
 /* ── Welcome-specific ──────────────────────────────────────────────── */
 
 .welcome-logo {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, var(--color-accent), #5856d6, #af52de);
-  border-radius: var(--radius-xl);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  color: #fff;
-  font-weight: 800;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
   margin-bottom: 16px;
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 122, 255, 0.2);
+  filter: drop-shadow(0 8px 24px rgba(0, 122, 255, 0.3));
 }
 
 .welcome-buttons {

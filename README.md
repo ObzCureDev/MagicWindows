@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/MagicWindows.png" alt="MagicWindows" width="120" />
+</p>
+
 # MagicWindows
 
 **Install Apple Magic Keyboard layouts on Windows** | **Installer les dispositions Apple Magic Keyboard sur Windows**

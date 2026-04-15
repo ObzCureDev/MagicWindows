@@ -15,7 +15,7 @@
 
 <div class="top-bar">
   <div class="top-bar__title">
-    <span class="top-bar__title-icon">M</span>
+    <img src="/MagicWindows.png" alt="" class="top-bar__title-icon" />
     {t(appState.lang, "appTitle")}
   </div>
   <div class="lang-toggle">
