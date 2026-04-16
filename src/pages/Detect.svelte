@@ -150,6 +150,52 @@
           {t(appState.lang, "detect.continue")}
         </button>
       </div>
+
+      <div class="mk-body mk-body--neutral" aria-hidden="true">
+        <div class="mk-row mk-row--fn">
+          <div class="mk-key mk-key--fn-esc"><span class="mk-lbl-sm">esc</span></div>
+          {#each Array(12) as _, i}
+            <div class="mk-key mk-key--fn"><span class="mk-lbl-fn">F{i + 1}</span></div>
+          {/each}
+          <div class="mk-touchid"></div>
+        </div>
+        <div class="mk-row">
+          {#each Array(13) as _}<div class="mk-key"></div>{/each}
+          <div class="mk-key mk-key--delete"><span class="mk-lbl-sm">delete</span></div>
+        </div>
+        <div class="mk-row">
+          <div class="mk-key mk-key--tab"><span class="mk-lbl-sm">tab</span></div>
+          {#each Array(12) as _}<div class="mk-key"></div>{/each}
+          <div class="mk-key mk-key--enter-top"></div>
+        </div>
+        <div class="mk-row">
+          <div class="mk-key mk-key--caps"><span class="mk-lbl-sm">caps lock</span></div>
+          {#each Array(12) as _}<div class="mk-key"></div>{/each}
+          <div class="mk-key mk-key--enter-bot"><span class="mk-lbl-sm">return</span></div>
+        </div>
+        <div class="mk-row">
+          <div class="mk-key mk-key--lshift"><span class="mk-lbl-sm">shift</span></div>
+          {#each Array(11) as _}<div class="mk-key"></div>{/each}
+          <div class="mk-key mk-key--rshift"><span class="mk-lbl-sm">shift</span></div>
+        </div>
+        <div class="mk-row mk-row--bottom">
+          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">fn</span></div>
+          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">control</span></div>
+          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">option</span></div>
+          <div class="mk-key mk-key--cmd"><span class="mk-lbl-xs">command</span></div>
+          <div class="mk-key mk-key--space"></div>
+          <div class="mk-key mk-key--cmd"><span class="mk-lbl-xs">command</span></div>
+          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">option</span></div>
+          <div class="mk-arrows">
+            <div class="mk-arrow mk-arrow--l"><span class="mk-arrow-glyph">◀</span></div>
+            <div class="mk-arrow-stack">
+              <div class="mk-arrow mk-arrow--h"><span class="mk-arrow-glyph">▲</span></div>
+              <div class="mk-arrow mk-arrow--h"><span class="mk-arrow-glyph">▼</span></div>
+            </div>
+            <div class="mk-arrow mk-arrow--l"><span class="mk-arrow-glyph">▶</span></div>
+          </div>
+        </div>
+      </div>
     {:else if currentChar}
       <div
         class="progress-bar"

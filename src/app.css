@@ -509,6 +509,11 @@ body {
     0 1px 3px rgba(0,0,0,0.35);
 }
 
+.mk-body--neutral {
+  filter: saturate(0.6);
+  opacity: 0.75;
+}
+
 .mk-row { display: flex; gap: var(--mk-gap); align-items: flex-end; }
 
 .mk-key {
