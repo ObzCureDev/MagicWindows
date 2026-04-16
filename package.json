@@ -6,7 +6,9 @@
   "description": "Install Apple Magic Keyboard layouts on Windows — auto-detect your keyboard and fix keycap mismatches",
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/build-detection-catalogue.mjs",
     "build": "vite build",
+    "prebuild": "node scripts/build-detection-catalogue.mjs",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run",
