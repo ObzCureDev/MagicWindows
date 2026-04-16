@@ -46,3 +46,26 @@ export interface DetectionResult {
 export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "done" | "about";
 export type Lang = "en" | "fr";
 export type Theme = "light" | "dark" | "system";
+
+// ── Character-based detection (see docs/superpowers/specs/2026-04-16-character-based-detection-design.md)
+
+export interface DetectionCharEntry {
+  char: string;
+  codepoint: string;
+  /** Map from layoutId to the DOM event.code where this char is printed on that layout. */
+  positions: Record<string, string>;
+}
+
+export interface DetectionCatalogue {
+  generatedAt: string;
+  characters: DetectionCharEntry[];
+}
+
+export type DetectionResponse =
+  | { kind: "key_pressed"; eventCode: string }
+  | { kind: "no_such_key" };
+
+export type DetectionPhase =
+  | { kind: "asking"; char: DetectionCharEntry; candidates: string[] }
+  | { kind: "detected"; layoutId: string }
+  | { kind: "failed" };
