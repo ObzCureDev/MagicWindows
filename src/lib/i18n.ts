@@ -65,10 +65,10 @@ export const translations: Record<string, Record<string, unknown>> = {
     },
     done: {
       title: "All Done!",
-      congratulations: "Your Apple Magic Keyboard layout is now installed.",
+      congratulations: "Your Apple Magic Keyboard layout is now installed and added to your input methods.",
       instructions:
-        "To activate the layout, open Windows Settings > Time & Language > Language and add the new keyboard layout.",
-      switchInfo: "Use Win+Space to switch between keyboard layouts.",
+        "Press Win+Space to switch to it now. If you don't see it in the list, open Windows Settings to add it manually.",
+      switchInfo: "Tip: Win+Space cycles through your installed keyboard layouts.",
       uninstall: "Uninstall layout",
       close: "Close",
     },
@@ -153,11 +153,11 @@ export const translations: Record<string, Record<string, unknown>> = {
     done: {
       title: "Terminé !",
       congratulations:
-        "Votre disposition Apple Magic Keyboard est maintenant installée.",
+        "Votre disposition Apple Magic Keyboard est installée et ajoutée à vos méthodes d'entrée.",
       instructions:
-        "Pour activer la disposition, ouvrez Paramètres Windows > Heure et langue > Langue et ajoutez la nouvelle disposition clavier.",
+        "Appuyez sur Win+Espace pour l'activer immédiatement. Si elle n'apparaît pas, ouvrez les paramètres Windows pour l'ajouter manuellement.",
       switchInfo:
-        "Utilisez Win+Espace pour basculer entre les dispositions clavier.",
+        "Astuce : Win+Espace fait défiler vos dispositions clavier installées.",
       uninstall: "Désinstaller la disposition",
       close: "Fermer",
     },

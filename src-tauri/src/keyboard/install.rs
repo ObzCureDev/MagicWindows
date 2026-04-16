@@ -98,6 +98,15 @@ do {{
 Write-Host "Registry key : $layoutId"
 Write-Host "Layout Id    : $layoutIdHex"
 
+# Emit machine-parseable markers so the parent Rust process can pick up the generated
+# KLID and the language tag, then add the layout to the current user's input methods
+# in a separate (non-elevated) step.
+$langIdHex = $LocaleId.Substring(4, 4)
+$langTag   = [System.Globalization.CultureInfo]::new([int]("0x$langIdHex")).Name
+Write-Host "MAGICWINDOWS_KLID=$layoutId"
+Write-Host "MAGICWINDOWS_LANGID=$langIdHex"
+Write-Host "MAGICWINDOWS_LANGTAG=$langTag"
+
 # ── Copy DLL to system directories ────────────────────────────────────────
 $dllFileName = "$DllName.dll"
 $sys32       = Join-Path $env:SystemRoot 'System32'
@@ -127,9 +136,107 @@ Write-Host 'Keyboard layout installed successfully.'
         layout_name = layout_name.replace('\'', "\\'"),
     );
 
-    run_elevated_ps(&install_dir, "install", &ps_script)?;
+    let stdout = run_elevated_ps(&install_dir, "install", &ps_script)?;
     log::info!("Layout {} installed successfully", layout.id);
+
+    // ── 3. Activate: add the new KLID to the user's input methods ──────────
+    // The elevated step ran as Administrator, so it can't touch the original user's
+    // HKCU\Keyboard Layout\Preload. Parse the markers it emitted to stdout and run
+    // a non-elevated PowerShell in the user's own context.
+    if let Some((klid, lang_tag)) = parse_install_markers(&stdout) {
+        match activate_for_user(&install_dir, &klid, &lang_tag) {
+            Ok(()) => log::info!("Layout {} activated for current user (KLID {klid}, tag {lang_tag})", layout.id),
+            Err(e) => log::warn!("Layout installed but auto-activation failed: {e}"),
+        }
+    } else {
+        log::warn!("Could not parse KLID from install stdout; skipping auto-activation");
+    }
     Ok(())
+}
+
+/// Pulls `MAGICWINDOWS_KLID=...` and `MAGICWINDOWS_LANGTAG=...` lines out of the
+/// elevated install script's stdout. Returns (klid, langTag) if both are found.
+#[cfg(target_os = "windows")]
+fn parse_install_markers(stdout: &str) -> Option<(String, String)> {
+    let mut klid: Option<String> = None;
+    let mut tag: Option<String> = None;
+    for line in stdout.lines() {
+        let line = line.trim();
+        if let Some(v) = line.strip_prefix("MAGICWINDOWS_KLID=") {
+            klid = Some(v.trim().to_string());
+        } else if let Some(v) = line.strip_prefix("MAGICWINDOWS_LANGTAG=") {
+            tag = Some(v.trim().to_string());
+        }
+    }
+    match (klid, tag) {
+        (Some(k), Some(t)) if !k.is_empty() && !t.is_empty() => Some((k, t)),
+        _ => None,
+    }
+}
+
+/// Adds the freshly-installed KLID to the current user's input methods so the
+/// keyboard layout becomes selectable from the language bar without a manual
+/// trip to Windows Settings. Runs un-elevated (HKCU is per-user).
+#[cfg(target_os = "windows")]
+fn activate_for_user(work_dir: &std::path::Path, klid: &str, lang_tag: &str) -> Result<(), String> {
+    use std::fs;
+    use std::process::Command;
+
+    let ps_path     = work_dir.join("activate.ps1");
+    let stdout_path = work_dir.join("activate_stdout.txt");
+    let stderr_path = work_dir.join("activate_stderr.txt");
+
+    // KLID is the 8-char registry key name (e.g. a001040c). InputMethodTip format
+    // is "<langid_hex>:<klid>" — we derive langid from the last 4 chars of the KLID
+    // (which itself encodes the locale suffix per the install script).
+    let lang_id_hex = &klid[klid.len().saturating_sub(4)..];
+    let tip = format!("{lang_id_hex}:{klid}");
+
+    let script = format!(
+        r#"
+$ErrorActionPreference = 'Stop'
+$tip      = '{tip}'
+$langTag  = '{lang_tag}'
+
+$list = Get-WinUserLanguageList
+$lang = $list | Where-Object {{ $_.LanguageTag -eq $langTag }}
+if (-not $lang) {{
+    $list.Add($langTag)
+    $lang = $list | Where-Object {{ $_.LanguageTag -eq $langTag }}
+}}
+
+if ($lang.InputMethodTips -notcontains $tip) {{
+    $lang.InputMethodTips.Add($tip)
+    Set-WinUserLanguageList $list -Force
+    Write-Host "Added input method $tip to language $langTag"
+}} else {{
+    Write-Host "Input method $tip already present for $langTag"
+}}
+"#
+    );
+
+    fs::write(&ps_path, &script)
+        .map_err(|e| format!("Failed to write activate script: {e}"))?;
+
+    let output = Command::new("powershell")
+        .args([
+            "-ExecutionPolicy", "Bypass",
+            "-NoProfile",
+            "-File", &ps_path.to_string_lossy(),
+        ])
+        .output()
+        .map_err(|e| format!("Failed to run activation PowerShell: {e}"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let _ = fs::write(&stdout_path, &stdout);
+    let _ = fs::write(&stderr_path, &stderr);
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format!("Activation PS failed: {}", stderr.trim()))
+    }
 }
 
 /// Resolve the path to the pre-compiled keyboard layout DLL bundled with the
@@ -210,14 +317,14 @@ Write-Host 'Keyboard layout uninstalled successfully.'
 }
 
 /// Write `ps_script` to a `.ps1` file and run it in an elevated PowerShell
-/// process.  Blocks until the elevated child exits, then returns success or
-/// a descriptive error.
+/// process.  Blocks until the elevated child exits, then returns the captured
+/// stdout on success or a descriptive error on failure.
 #[cfg(target_os = "windows")]
 fn run_elevated_ps(
     work_dir: &std::path::Path,
     label: &str,
     ps_script: &str,
-) -> Result<(), String> {
+) -> Result<String, String> {
     use std::fs;
     use std::process::Command;
 
@@ -251,7 +358,8 @@ exit $proc.ExitCode
         .map_err(|e| format!("Failed to run PowerShell launcher: {e}"))?;
 
     if output.status.success() {
-        return Ok(());
+        let child_stdout = fs::read_to_string(&stdout_path).unwrap_or_default();
+        return Ok(child_stdout);
     }
 
     let child_stderr   = fs::read_to_string(&stderr_path).unwrap_or_default();
