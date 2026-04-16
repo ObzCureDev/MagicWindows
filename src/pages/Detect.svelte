@@ -30,6 +30,24 @@
   let failed = $state(false);
   let showWrongToast = $state(false);
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
+  // Chars already shown to the user — never re-ask the same one even if it would still score well.
+  let askedChars = $state(new Set<string>());
+
+  function pickQuestion(): DetectionCharEntry | null {
+    // Force `@` as the very first question when no narrowing has happened yet:
+    // it's universally recognizable and printed prominently on every Apple keyboard variant.
+    // (The pure minimax winner can be an obscure glyph like `|` — algorithmically optimal,
+    // but users may not visually identify it on their physical keycap.)
+    if (questionsAsked === 0 && askedChars.size === 0) {
+      const at = catalogue.characters.find((c) => c.char === "@");
+      if (at) return at;
+    }
+    const filtered: DetectionCatalogue = {
+      ...catalogue,
+      characters: catalogue.characters.filter((c) => !askedChars.has(c.char)),
+    };
+    return pickBestQuestion(filtered, candidates);
+  }
 
   function nextQuestion() {
     if (candidates.length === 1) {
@@ -40,7 +58,7 @@
       finishFailure();
       return;
     }
-    const q = pickBestQuestion(catalogue, candidates);
+    const q = pickQuestion();
     if (!q) {
       finishFailure();
       return;
@@ -81,6 +99,8 @@
 
     if (isExpectedPress(currentChar, candidates, event.code)) {
       const next = applyResponse(currentChar, candidates, { kind: "key_pressed", eventCode: event.code });
+      askedChars.add(currentChar.char);
+      askedChars = askedChars;
       candidates = next;
       questionsAsked += 1;
       currentChar = null;
@@ -93,9 +113,17 @@
 
   function clickNoKey() {
     if (!currentChar) return;
-    const next = applyResponse(currentChar, candidates, { kind: "no_such_key" });
-    candidates = next;
-    questionsAsked += 1;
+    // If the char is missing from at least one candidate, "no_such_key" is informative —
+    // narrow and count this as a real question. Otherwise the user just can't find this
+    // glyph on their keycap (it might be printed differently or hidden on a modifier
+    // layer); skip silently without penalizing the question budget.
+    const someAbsent = layoutsWithChar(currentChar, candidates).length < candidates.length;
+    if (someAbsent) {
+      candidates = applyResponse(currentChar, candidates, { kind: "no_such_key" });
+      questionsAsked += 1;
+    }
+    askedChars.add(currentChar.char);
+    askedChars = askedChars;
     currentChar = null;
     nextQuestion();
   }
@@ -117,11 +145,10 @@
     appState.page = "preview";
   }
 
-  // Helpers for the conditional "I don't have this key" button
-  let showNoKeyButton = $derived(
-    !!currentChar &&
-    layoutsWithChar(currentChar, candidates).length < candidates.length
-  );
+  // The "I don't have this key" button is always available during a prompt — even when the
+  // catalogue says every layout has the char. The user might genuinely not see it (printed
+  // differently, hidden on a modifier layer). clickNoKey() handles both cases.
+  let showNoKeyButton = $derived(!!currentChar);
 
   let progressPct = $derived((questionsAsked / MAX_QUESTIONS) * 100);
 

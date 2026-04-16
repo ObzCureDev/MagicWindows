@@ -13,6 +13,24 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const LAYOUTS_DIR = resolve(__dirname, "..", "layouts");
 const OUT_PATH   = resolve(__dirname, "..", "src", "lib", "detection-catalogue.generated.json");
 
+// Curated whitelist of characters that are universally and unambiguously printed on
+// physical keyboards. Excludes glyphs that vary by font/locale (guillemets «», smart
+// quotes "", em/en dashes, bullet •, OEM oddities) and dead-key prone marks.
+// Goal: when we ask the user "press the key where you see X", X must be visually
+// unmistakable on their physical keycap.
+const WHITELIST = new Set([
+  // ASCII punctuation/symbols
+  "@", "#", "$", "%", "&", "?", "!", "*", "+", "=",
+  "(", ")", "[", "]", "{", "}",
+  "<", ">", "/", "\\", "|",
+  // Currency
+  "£", "€", "¥",
+  // French / Italian printed accents (bare letters with diacritic on the keycap)
+  "é", "è", "à", "ù", "ò", "ì",
+  // Iberian / Germanic printed letters
+  "ç", "ñ", "ä", "ö", "ü", "ß",
+]);
+
 function loadLayouts() {
   return readdirSync(LAYOUTS_DIR)
     .filter(f => f.startsWith("apple-") && f.endsWith(".json"))
@@ -63,16 +81,14 @@ function build() {
   const totalLayouts = layouts.length;
   const useful = [];
   for (const [cp, positions] of byChar) {
+    const char = String.fromCodePoint(parseInt(cp, 16));
+    if (!WHITELIST.has(char)) continue; // only ask the user about unambiguously-printed glyphs
     const presentCount = Object.keys(positions).length;
     const distinctPositions = new Set(Object.values(positions)).size;
     const splitsPositions = distinctPositions >= 2;
     const splitsPresence  = presentCount > 0 && presentCount < totalLayouts;
     if (splitsPositions || splitsPresence) {
-      useful.push({
-        char: String.fromCodePoint(parseInt(cp, 16)),
-        codepoint: cp,
-        positions,
-      });
+      useful.push({ char, codepoint: cp, positions });
     }
   }
 
