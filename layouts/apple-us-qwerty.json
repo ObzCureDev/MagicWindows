@@ -2,21 +2,21 @@
   "id": "apple-us-qwerty",
   "name": {
     "en": "Apple US (QWERTY)",
-    "fr": "Apple Americain (QWERTY)"
+    "fr": "Apple Américain (QWERTY)"
   },
   "locale": "en-US",
   "localeId": "00000409",
   "dllName": "kbdaplus",
   "description": {
     "en": "US QWERTY layout matching Apple Magic Keyboard. Adds the Option-key layer with special characters, accented letters via dead keys, and typographic symbols not available on a standard Windows US keyboard.",
-    "fr": "Disposition QWERTY americaine correspondant au Magic Keyboard Apple. Ajoute la couche Option avec des caracteres speciaux, des lettres accentuees via touches mortes et des symboles typographiques absents du clavier US standard de Windows."
+    "fr": "Disposition QWERTY américaine correspondant au Magic Keyboard Apple. Ajoute la couche Option avec des caractères spéciaux, des lettres accentuées via touches mortes et des symboles typographiques absents du clavier US standard de Windows."
   },
   "detectionKeys": [
     {
       "eventCode": "KeyQ",
       "prompt": {
         "en": "Press the Q key (top-left letter row)",
-        "fr": "Appuyez sur la touche Q (rangee superieure, a gauche)"
+        "fr": "Appuyez sur la touche Q (rangée supérieure, à gauche)"
       },
       "expectedBase": "q"
     },
@@ -24,7 +24,7 @@
       "eventCode": "KeyA",
       "prompt": {
         "en": "Press the A key (home row, leftmost letter)",
-        "fr": "Appuyez sur la touche A (rangee du milieu, premiere lettre)"
+        "fr": "Appuyez sur la touche A (rangée du milieu, première lettre)"
       },
       "expectedBase": "a"
     },

@@ -81,4 +81,42 @@ impl Layout {
             description: self.description.clone(),
         }
     }
+
+    /// Validate layout invariants that match the JSON schema constraints.
+    pub fn validate(&self) -> Result<(), String> {
+        // ID must match apple-{xx}-{type}
+        if !self.id.starts_with("apple-") || self.id.len() < 10 {
+            return Err(format!("Layout ID '{}' must start with 'apple-' and include language and type", self.id));
+        }
+
+        // DLL name max 8 chars, lowercase alphanumeric
+        if self.dll_name.is_empty() || self.dll_name.len() > 8 {
+            return Err(format!("DLL name '{}' must be 1-8 characters", self.dll_name));
+        }
+        if !self.dll_name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()) {
+            return Err(format!("DLL name '{}' must be lowercase alphanumeric", self.dll_name));
+        }
+
+        // Detection keys: 3-5
+        if self.detection_keys.len() < 3 || self.detection_keys.len() > 5 {
+            return Err(format!("Layout '{}' must have 3-5 detection keys, has {}", self.id, self.detection_keys.len()));
+        }
+
+        // Must have at least one key mapping
+        if self.keys.is_empty() {
+            return Err(format!("Layout '{}' has no key mappings", self.id));
+        }
+
+        // Locale must be xx-XX format
+        if self.locale.len() != 5 || self.locale.as_bytes()[2] != b'-' {
+            return Err(format!("Layout '{}' locale '{}' must be xx-XX format", self.id, self.locale));
+        }
+
+        // Locale ID must be 8 hex chars
+        if self.locale_id.len() != 8 || !self.locale_id.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(format!("Layout '{}' locale_id '{}' must be 8 hex chars", self.id, self.locale_id));
+        }
+
+        Ok(())
+    }
 }

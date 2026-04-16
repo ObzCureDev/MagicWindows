@@ -39,6 +39,8 @@ fn load_all_layouts(app: &tauri::AppHandle) -> Result<Vec<Layout>, String> {
                 .map_err(|e| format!("Cannot read {}: {e}", path.display()))?;
             let layout: Layout = serde_json::from_str(&content)
                 .map_err(|e| format!("Cannot parse {}: {e}", path.display()))?;
+            layout.validate()
+                .map_err(|e| format!("Invalid layout {}: {e}", path.display()))?;
             layouts.push(layout);
         }
     }
@@ -65,7 +67,11 @@ fn load_layout(app: &tauri::AppHandle, id: &str) -> Result<Layout, String> {
     let path = dir.join(format!("{id}.json"));
     let content = std::fs::read_to_string(&path)
         .map_err(|e| format!("Cannot read layout '{id}': {e}"))?;
-    serde_json::from_str(&content).map_err(|e| format!("Cannot parse layout '{id}': {e}"))
+    let layout: Layout = serde_json::from_str(&content)
+        .map_err(|e| format!("Cannot parse layout '{id}': {e}"))?;
+    layout.validate()
+        .map_err(|e| format!("Invalid layout '{id}': {e}"))?;
+    Ok(layout)
 }
 
 // ── Tauri commands ──────────────────────────────────────────────────────

@@ -9,14 +9,14 @@
   "dllName": "kbdaplde",
   "description": {
     "en": "German QWERTZ layout matching Apple Magic Keyboard keycaps. Fixes the mismatch between Apple's key labels and Windows' default German layout, particularly the Option-layer characters like @, brackets, and braces.",
-    "fr": "Disposition QWERTZ allemande correspondant aux inscriptions du Magic Keyboard Apple. Corrige le decalage entre les symboles imprimes sur les touches Apple et la disposition allemande par defaut de Windows."
+    "fr": "Disposition QWERTZ allemande correspondant aux inscriptions du Magic Keyboard Apple. Corrige le décalage entre les symboles imprimés sur les touches Apple et la disposition allemande par défaut de Windows."
   },
   "detectionKeys": [
     {
       "eventCode": "KeyQ",
       "prompt": {
         "en": "Press the Q key (top-left letter row)",
-        "fr": "Appuyez sur la touche Q (rangee superieure, a gauche)"
+        "fr": "Appuyez sur la touche Q (rangée supérieure, à gauche)"
       },
       "expectedBase": "q"
     },
@@ -24,7 +24,7 @@
       "eventCode": "KeyZ",
       "prompt": {
         "en": "Press the key between T and U on the top row",
-        "fr": "Appuyez sur la touche entre T et U sur la rangee superieure"
+        "fr": "Appuyez sur la touche entre T et U sur la rangée supérieure"
       },
       "expectedBase": "z"
     },
@@ -32,7 +32,7 @@
       "eventCode": "KeyY",
       "prompt": {
         "en": "Press the key to the right of the left Shift (bottom-left area, second key)",
-        "fr": "Appuyez sur la deuxieme touche a droite du Shift gauche (en bas a gauche)"
+        "fr": "Appuyez sur la deuxième touche à droite du Shift gauche (en bas à gauche)"
       },
       "expectedBase": "y"
     },
@@ -40,7 +40,7 @@
       "eventCode": "BracketLeft",
       "prompt": {
         "en": "Press the key to the right of P",
-        "fr": "Appuyez sur la touche a droite du P"
+        "fr": "Appuyez sur la touche à droite du P"
       },
       "expectedBase": "\u00fc"
     }

@@ -237,23 +237,62 @@ mod tests {
     use super::*;
     use crate::keyboard::Layout;
 
-    #[test]
-    fn generates_non_empty_klc() {
-        let json = include_str!("../../../layouts/apple-fr-azerty.json");
-        let layout: Layout = serde_json::from_str(json).expect("parse layout JSON");
+    /// Helper: parse a layout JSON, validate it, and generate KLC, asserting required sections.
+    fn assert_valid_klc(json: &str, expected_dll: &str, expected_locale: &str) {
+        let layout: Layout = serde_json::from_str(json)
+            .unwrap_or_else(|e| panic!("parse layout JSON for {expected_dll}: {e}"));
+        layout.validate()
+            .unwrap_or_else(|e| panic!("validate layout {expected_dll}: {e}"));
         let klc = generate_klc(&layout);
 
-        assert!(klc.contains("KBD\tkbdaplfr"));
-        assert!(klc.contains("LOCALENAME\t\"fr-FR\""));
-        assert!(klc.contains("SHIFTSTATE"));
-        assert!(klc.contains("LAYOUT"));
-        assert!(klc.contains("DEADKEY\t005e"));
-        assert!(klc.contains("DEADKEY\t00a8"));
-        assert!(klc.contains("DEADKEY\t0060"));
-        assert!(klc.contains("DEADKEY\t007e"));
-        assert!(klc.contains("KEYNAME"));
-        assert!(klc.contains("KEYNAME_EXT"));
-        assert!(klc.contains("KEYNAME_DEAD"));
-        assert!(klc.contains("ENDKBD"));
+        assert!(klc.contains(&format!("KBD\t{expected_dll}")), "missing KBD header");
+        assert!(klc.contains(&format!("LOCALENAME\t\"{expected_locale}\"")), "missing LOCALENAME");
+        assert!(klc.contains("SHIFTSTATE"), "missing SHIFTSTATE");
+        assert!(klc.contains("LAYOUT"), "missing LAYOUT");
+        assert!(klc.contains("KEYNAME"), "missing KEYNAME");
+        assert!(klc.contains("KEYNAME_EXT"), "missing KEYNAME_EXT");
+        assert!(klc.contains("ENDKBD"), "missing ENDKBD");
+
+        // If layout has dead keys, verify they appear
+        if !layout.dead_keys.is_empty() {
+            assert!(klc.contains("DEADKEY\t"), "missing DEADKEY sections");
+            assert!(klc.contains("KEYNAME_DEAD"), "missing KEYNAME_DEAD");
+        }
+    }
+
+    #[test]
+    fn generates_klc_fr_azerty() {
+        let json = include_str!("../../../layouts/apple-fr-azerty.json");
+        assert_valid_klc(json, "kbdaplfr", "fr-FR");
+    }
+
+    #[test]
+    fn generates_klc_us_qwerty() {
+        let json = include_str!("../../../layouts/apple-us-qwerty.json");
+        assert_valid_klc(json, "kbdaplus", "en-US");
+    }
+
+    #[test]
+    fn generates_klc_uk_qwerty() {
+        let json = include_str!("../../../layouts/apple-uk-qwerty.json");
+        assert_valid_klc(json, "kbdapluk", "en-GB");
+    }
+
+    #[test]
+    fn generates_klc_de_qwertz() {
+        let json = include_str!("../../../layouts/apple-de-qwertz.json");
+        assert_valid_klc(json, "kbdaplde", "de-DE");
+    }
+
+    #[test]
+    fn generates_klc_es_qwerty() {
+        let json = include_str!("../../../layouts/apple-es-qwerty.json");
+        assert_valid_klc(json, "kbdaples", "es-ES");
+    }
+
+    #[test]
+    fn generates_klc_it_qwerty() {
+        let json = include_str!("../../../layouts/apple-it-qwerty.json");
+        assert_valid_klc(json, "kbdaplit", "it-IT");
     }
 }

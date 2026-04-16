@@ -9,14 +9,14 @@
   "dllName": "kbdapluk",
   "description": {
     "en": "British QWERTY layout matching Apple Magic Keyboard keycaps. Fixes the mismatch between Apple's key labels and Windows' default UK layout, particularly the repositioned grave, backslash, and section keys, plus the full Option-key layer with special characters and dead keys.",
-    "fr": "Disposition QWERTY britannique correspondant aux inscriptions du Magic Keyboard Apple. Corrige le decalage entre les symboles imprimes sur les touches Apple et la disposition britannique par defaut de Windows, notamment les touches accent grave, barre oblique inverse et paragraphe, ainsi que la couche Option avec caracteres speciaux et touches mortes."
+    "fr": "Disposition QWERTY britannique correspondant aux inscriptions du Magic Keyboard Apple. Corrige le décalage entre les symboles imprimés sur les touches Apple et la disposition britannique par défaut de Windows, notamment les touches accent grave, barre oblique inverse et paragraphe, ainsi que la couche Option avec caractères spéciaux et touches mortes."
   },
   "detectionKeys": [
     {
       "eventCode": "Backquote",
       "prompt": {
         "en": "Press the key to the LEFT of the 1 key (top-left area)",
-        "fr": "Appuyez sur la touche a GAUCHE du 1 (en haut a gauche)"
+        "fr": "Appuyez sur la touche à GAUCHE du 1 (en haut à gauche)"
       },
       "expectedBase": "\u00a7"
     },
@@ -32,7 +32,7 @@
       "eventCode": "Backslash",
       "prompt": {
         "en": "Press the key to the RIGHT of the single-quote key (left of Enter)",
-        "fr": "Appuyez sur la touche a DROITE de l'apostrophe (a gauche de Entree)"
+        "fr": "Appuyez sur la touche à DROITE de l'apostrophe (à gauche de Entrée)"
       },
       "expectedBase": "\\"
     }

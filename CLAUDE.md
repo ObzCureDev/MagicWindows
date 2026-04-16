@@ -23,25 +23,31 @@ cargo fmt                  # Rust formatting
 - **Backend**: Rust + Tauri v2. Handles keyboard detection, KLC file generation, and layout installation.
 - **Layouts**: JSON files in `layouts/` validated against `layouts/schema.json`.
 - **i18n**: Custom bilingual (EN/FR) system in `src/lib/i18n.ts`. All UI text must have both translations.
-- **Page flow**: Welcome → Detect → Select → Preview → Install → Done
+- **Theming**: System/Dark/Light mode via CSS custom properties on `:root[data-theme]`. Toggle in top bar cycles system → dark → light.
+- **Page flow**: Welcome → Detect → Select → Preview → Install → Done (+ About via title bar)
 
 ## Project Structure
 
 ```
 src/                       # Svelte 5 frontend
-  pages/                   # Welcome, Detect, Select, Preview, Install, Done
-  components/              # Reusable components (KeyboardVisual)
+  pages/                   # Welcome, Detect, Select, Preview, Install, Done, About
+  components/
+    KeyboardVisual.svelte  # Reusable keyboard rendering component
   lib/
-    stores.ts              # App state ($state rune)
+    stores.ts              # App state ($state rune) — includes theme, lang
     i18n.ts                # EN/FR translations
-    types.ts               # TypeScript types
+    types.ts               # TypeScript types (Page, Lang, Theme, Layout, etc.)
 src-tauri/                 # Rust backend (Tauri v2)
   src/keyboard/            # Detection, KLC generation, installation logic
-layouts/                   # Keyboard layout JSON definitions
+layouts/                   # Keyboard layout JSON definitions (6 layouts)
   schema.json              # Layout validation schema
-  apple-fr-azerty.json     # French AZERTY layout
-  apple-us-qwerty.json     # US QWERTY layout
-scripts/                   # PowerShell scripts
+  apple-fr-azerty.json     # French AZERTY
+  apple-us-qwerty.json     # US QWERTY
+  apple-uk-qwerty.json     # UK (British) QWERTY
+  apple-de-qwertz.json     # German QWERTZ
+  apple-es-qwerty.json     # Spanish QWERTY
+  apple-it-qwerty.json     # Italian QWERTY
+scripts/                   # PowerShell scripts (standalone, not used by app)
   Install-Layout.ps1       # Layout installation
   Uninstall-Layout.ps1     # Layout removal
 ```

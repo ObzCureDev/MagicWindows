@@ -11,7 +11,50 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: windows-latest
+    name: Test & Validate
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-test-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-test-cargo-
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: TypeScript & Svelte type check
+        run: npm run check
+
+      - name: Rust tests (layout validation + KLC generation)
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Rust linting
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
+
   build:
+    needs: test
     strategy:
       fail-fast: false
       matrix:

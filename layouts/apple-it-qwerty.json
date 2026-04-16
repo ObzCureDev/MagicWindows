@@ -9,14 +9,14 @@
   "dllName": "kbdaplit",
   "description": {
     "en": "Italian QWERTY layout matching Apple Magic Keyboard keycaps. Fixes the mismatch between Apple's key labels and Windows' default Italian layout, notably the swapped backslash and angle-bracket keys.",
-    "fr": "Disposition QWERTY italienne correspondant aux inscriptions du Magic Keyboard Apple. Corrige le decalage entre les symboles imprimes sur les touches Apple et la disposition italienne par defaut de Windows, notamment l'inversion des touches barre oblique inverse et chevrons."
+    "fr": "Disposition QWERTY italienne correspondant aux inscriptions du Magic Keyboard Apple. Corrige le décalage entre les symboles imprimés sur les touches Apple et la disposition italienne par défaut de Windows, notamment l'inversion des touches barre oblique inverse et chevrons."
   },
   "detectionKeys": [
     {
       "eventCode": "Backquote",
       "prompt": {
         "en": "Press the key to the LEFT of the 1 key (top-left area)",
-        "fr": "Appuyez sur la touche a GAUCHE du 1 (en haut a gauche)"
+        "fr": "Appuyez sur la touche à GAUCHE du 1 (en haut à gauche)"
       },
       "expectedBase": "<"
     },
@@ -32,7 +32,7 @@
       "eventCode": "BracketLeft",
       "prompt": {
         "en": "Press the key to the right of P",
-        "fr": "Appuyez sur la touche a droite de P"
+        "fr": "Appuyez sur la touche à droite de P"
       },
       "expectedBase": "\u00e8"
     },
@@ -40,7 +40,7 @@
       "eventCode": "Semicolon",
       "prompt": {
         "en": "Press the key to the right of L, one key over",
-        "fr": "Appuyez sur la touche a droite de L, une touche plus loin"
+        "fr": "Appuyez sur la touche à droite de L, une touche plus loin"
       },
       "expectedBase": "\u00f2"
     }

@@ -2,21 +2,21 @@
   "id": "apple-fr-azerty",
   "name": {
     "en": "Apple French (AZERTY)",
-    "fr": "Apple Francais (AZERTY)"
+    "fr": "Apple Français (AZERTY)"
   },
   "locale": "fr-FR",
   "localeId": "0000040c",
   "dllName": "kbdaplfr",
   "description": {
     "en": "French AZERTY layout matching Apple Magic Keyboard keycaps. Fixes the mismatch between Apple's key labels and Windows' default French layout.",
-    "fr": "Disposition AZERTY francaise correspondant aux inscriptions du Magic Keyboard Apple. Corrige le decalage entre les symboles imprimes sur les touches Apple et la disposition francaise par defaut de Windows."
+    "fr": "Disposition AZERTY française correspondant aux inscriptions du Magic Keyboard Apple. Corrige le décalage entre les symboles imprimés sur les touches Apple et la disposition française par défaut de Windows."
   },
   "detectionKeys": [
     {
       "eventCode": "Backquote",
       "prompt": {
         "en": "Press the key to the LEFT of the 1 key (top-left area)",
-        "fr": "Appuyez sur la touche a GAUCHE du 1 (en haut a gauche)"
+        "fr": "Appuyez sur la touche à GAUCHE du 1 (en haut à gauche)"
       },
       "expectedBase": "@"
     },
@@ -24,7 +24,7 @@
       "eventCode": "Digit8",
       "prompt": {
         "en": "Press the key between 7 and 9 on the number row",
-        "fr": "Appuyez sur la touche entre 7 et 9 sur la rangee des chiffres"
+        "fr": "Appuyez sur la touche entre 7 et 9 sur la rangée des chiffres"
       },
       "expectedBase": "!"
     },
@@ -32,7 +32,7 @@
       "eventCode": "Digit6",
       "prompt": {
         "en": "Press the key between 5 and 7 on the number row",
-        "fr": "Appuyez sur la touche entre 5 et 7 sur la rangee des chiffres"
+        "fr": "Appuyez sur la touche entre 5 et 7 sur la rangée des chiffres"
       },
       "expectedBase": "\u00a7"
     },
@@ -40,7 +40,7 @@
       "eventCode": "Minus",
       "prompt": {
         "en": "Press the key to the RIGHT of the 0 key, two keys before Backspace",
-        "fr": "Appuyez sur la touche a DROITE du 0, deux touches avant Retour"
+        "fr": "Appuyez sur la touche à DROITE du 0, deux touches avant Retour"
       },
       "expectedBase": ")"
     }
