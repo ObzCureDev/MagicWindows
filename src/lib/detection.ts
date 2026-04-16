@@ -31,7 +31,15 @@ export function applyResponse(
   candidates: string[],
   response: DetectionResponse,
 ): string[] {
-  throw new Error("not implemented");
+  if (response.kind === "no_such_key") {
+    return candidates.filter((id) => entry.positions[id] === undefined);
+  }
+  // key_pressed
+  const expectedCodes = new Set(Object.values(entry.positions));
+  if (!expectedCodes.has(response.eventCode)) {
+    return candidates; // unknown for this question — caller treats as "wrong key"
+  }
+  return candidates.filter((id) => entry.positions[id] === response.eventCode);
 }
 
 /**
@@ -42,5 +50,5 @@ export function isExpectedPress(
   candidates: string[],
   eventCode: string,
 ): boolean {
-  throw new Error("not implemented");
+  return candidates.some((id) => entry.positions[id] === eventCode);
 }
