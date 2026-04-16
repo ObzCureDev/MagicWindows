@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { appState } from "../lib/stores";
   import { t } from "../lib/i18n";
@@ -20,11 +20,10 @@
       const layoutIds = appState.layouts.map((l) => l.id);
       const keys = await invoke<DetectionKey[]>("get_detection_keys", { layoutIds });
       detectionKeys = keys;
-      waiting = false;
     } catch (err) {
       console.error("Failed to get detection keys:", err);
-      // Fallback: extract from layouts if command not available
       appState.error = String(err);
+    } finally {
       waiting = false;
     }
   });
@@ -100,17 +99,11 @@
     appState.page = "welcome";
   }
 
-  let keydownHandler: (e: KeyboardEvent) => void;
-
   onMount(() => {
-    keydownHandler = handleKeydown;
-    window.addEventListener("keydown", keydownHandler);
-  });
-
-  onDestroy(() => {
-    if (keydownHandler) {
-      window.removeEventListener("keydown", keydownHandler);
-    }
+    window.addEventListener("keydown", handleKeydown);
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+    };
   });
 </script>
 
@@ -149,7 +142,7 @@
         </button>
       </div>
     {:else if currentKey}
-      <div class="progress-bar">
+      <div class="progress-bar" role="progressbar" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}>
         <div class="progress-bar__fill" style="width: {progress}%"></div>
       </div>
       <p class="text-secondary">

@@ -38,7 +38,7 @@
     </div>
 
     {#if loading}
-      <div class="spinner"></div>
+      <div class="spinner" role="status" aria-label={t(appState.lang, "common.loading")}></div>
       <p class="text-secondary">{t(appState.lang, "common.loading")}</p>
     {:else if appState.error}
       <div class="status status--error">{appState.error}</div>

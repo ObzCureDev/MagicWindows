@@ -50,6 +50,16 @@ fn load_all_layouts(app: &tauri::AppHandle) -> Result<Vec<Layout>, String> {
 
 /// Load a single layout by its `id` field.
 fn load_layout(app: &tauri::AppHandle, id: &str) -> Result<Layout, String> {
+    // Validate the id to prevent path traversal attacks.
+    // Layout IDs should only contain alphanumeric characters, hyphens, and underscores.
+    if id.is_empty()
+        || id
+            .chars()
+            .any(|c| !c.is_ascii_alphanumeric() && c != '-' && c != '_')
+    {
+        return Err(format!("Invalid layout ID: '{id}'"));
+    }
+
     let dir = layouts_dir(app)?;
     // Convention: the file is named `{id}.json`.
     let path = dir.join(format!("{id}.json"));

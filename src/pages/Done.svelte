@@ -24,12 +24,10 @@
     }
   }
 
-  function close() {
+  async function close() {
     try {
-      // Tauri v2 window close
-      import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
-        getCurrentWindow().close();
-      });
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().close();
     } catch {
       window.close();
     }

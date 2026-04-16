@@ -31,12 +31,16 @@
 
   /**
    * Map a locale string like "fr-FR" to a short region flag label.
+   * Returns an empty string if the locale doesn't contain a valid 2-letter region code.
    */
   function localeFlag(locale: string): string {
     const parts = locale.split("-");
     const region = parts[1] ?? parts[0];
+    if (!region || region.length !== 2) return "";
     // Use regional indicator symbols to get flag emoji
-    const codePoints = [...region.toUpperCase()].map(
+    const upper = region.toUpperCase();
+    if (upper < "AA" || upper > "ZZ") return "";
+    const codePoints = [...upper].map(
       (c) => 0x1f1e6 + c.charCodeAt(0) - 65,
     );
     return String.fromCodePoint(...codePoints);
@@ -54,6 +58,7 @@
       class="search-input"
       type="text"
       placeholder={t(appState.lang, "select.searchPlaceholder")}
+      aria-label={t(appState.lang, "select.searchPlaceholder")}
       bind:value={search}
     />
 

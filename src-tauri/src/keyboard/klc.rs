@@ -108,15 +108,20 @@ pub fn generate_klc(layout: &Layout) -> String {
     push_line(&mut out, "");
 
     // ── DESCRIPTIONS ────────────────────────────────────────────────────
+    // Use the primary language ID (lower 4 hex digits of the locale_id).
+    let lang_id = layout
+        .locale_id
+        .get(layout.locale_id.len().saturating_sub(4)..)
+        .unwrap_or("0409");
     push_line(&mut out, "DESCRIPTIONS");
     push_line(&mut out, "");
-    push_line(&mut out, &format!("0409\t{}", layout_name));
+    push_line(&mut out, &format!("{}\t{}", lang_id, layout_name));
     push_line(&mut out, "");
 
     // ── LANGUAGENAMES ───────────────────────────────────────────────────
     push_line(&mut out, "LANGUAGENAMES");
     push_line(&mut out, "");
-    push_line(&mut out, &format!("0409\t{}", locale_display_name(&layout.locale)));
+    push_line(&mut out, &format!("{}\t{}", lang_id, locale_display_name(&layout.locale)));
     push_line(&mut out, "");
 
     // ── End ─────────────────────────────────────────────────────────────

@@ -1,0 +1,173 @@
+{
+  "id": "apple-us-qwerty",
+  "name": {
+    "en": "Apple US (QWERTY)",
+    "fr": "Apple Americain (QWERTY)"
+  },
+  "locale": "en-US",
+  "localeId": "00000409",
+  "dllName": "kbdaplus",
+  "description": {
+    "en": "US QWERTY layout matching Apple Magic Keyboard. Adds the Option-key layer with special characters, accented letters via dead keys, and typographic symbols not available on a standard Windows US keyboard.",
+    "fr": "Disposition QWERTY americaine correspondant au Magic Keyboard Apple. Ajoute la couche Option avec des caracteres speciaux, des lettres accentuees via touches mortes et des symboles typographiques absents du clavier US standard de Windows."
+  },
+  "detectionKeys": [
+    {
+      "eventCode": "KeyQ",
+      "prompt": {
+        "en": "Press the Q key (top-left letter row)",
+        "fr": "Appuyez sur la touche Q (rangee superieure, a gauche)"
+      },
+      "expectedBase": "q"
+    },
+    {
+      "eventCode": "KeyA",
+      "prompt": {
+        "en": "Press the A key (home row, leftmost letter)",
+        "fr": "Appuyez sur la touche A (rangee du milieu, premiere lettre)"
+      },
+      "expectedBase": "a"
+    },
+    {
+      "eventCode": "Semicolon",
+      "prompt": {
+        "en": "Press the key between L and the apostrophe key",
+        "fr": "Appuyez sur la touche entre L et l'apostrophe"
+      },
+      "expectedBase": ";"
+    }
+  ],
+  "keys": {
+    "29": { "vk": "VK_OEM_3",      "cap": "0", "base": "0060",   "shift": "007e",   "ctrl": "-1", "altgr": "0060@", "altgrShift": "0060" },
+    "02": { "vk": "VK_1",          "cap": "0", "base": "0031",  "shift": "0021",   "ctrl": "-1", "altgr": "00a1",  "altgrShift": "2044" },
+    "03": { "vk": "VK_2",          "cap": "0", "base": "0032",  "shift": "0040",   "ctrl": "-1", "altgr": "2122",  "altgrShift": "20ac" },
+    "04": { "vk": "VK_3",          "cap": "0", "base": "0033",  "shift": "0023",   "ctrl": "-1", "altgr": "00a3",  "altgrShift": "2039" },
+    "05": { "vk": "VK_4",          "cap": "0", "base": "0034",  "shift": "0024",   "ctrl": "-1", "altgr": "00a2",  "altgrShift": "203a" },
+    "06": { "vk": "VK_5",          "cap": "0", "base": "0035",  "shift": "0025",   "ctrl": "-1", "altgr": "221e",  "altgrShift": "fb01" },
+    "07": { "vk": "VK_6",          "cap": "0", "base": "0036",  "shift": "005e",   "ctrl": "-1", "altgr": "00a7",  "altgrShift": "fb02" },
+    "08": { "vk": "VK_7",          "cap": "0", "base": "0037",  "shift": "0026",   "ctrl": "-1", "altgr": "00b6",  "altgrShift": "2021" },
+    "09": { "vk": "VK_8",          "cap": "0", "base": "0038",  "shift": "002a",   "ctrl": "-1", "altgr": "2022",  "altgrShift": "00b0" },
+    "0a": { "vk": "VK_9",          "cap": "0", "base": "0039",  "shift": "0028",   "ctrl": "-1", "altgr": "00aa",  "altgrShift": "00b7" },
+    "0b": { "vk": "VK_0",          "cap": "0", "base": "0030",  "shift": "0029",   "ctrl": "-1", "altgr": "00ba",  "altgrShift": "201a" },
+    "0c": { "vk": "VK_OEM_MINUS",  "cap": "0", "base": "002d",  "shift": "005f",   "ctrl": "-1", "altgr": "2013",  "altgrShift": "2014" },
+    "0d": { "vk": "VK_OEM_PLUS",   "cap": "0", "base": "003d",  "shift": "002b",   "ctrl": "-1", "altgr": "2260",  "altgrShift": "00b1" },
+
+    "10": { "vk": "VK_Q",          "cap": "1", "base": "0071",  "shift": "0051",   "ctrl": "-1", "altgr": "0153",  "altgrShift": "0152" },
+    "11": { "vk": "VK_W",          "cap": "1", "base": "0077",  "shift": "0057",   "ctrl": "-1", "altgr": "2211",  "altgrShift": "201e" },
+    "12": { "vk": "VK_E",          "cap": "1", "base": "0065",  "shift": "0045",   "ctrl": "-1", "altgr": "00b4@", "altgrShift": "00b4" },
+    "13": { "vk": "VK_R",          "cap": "1", "base": "0072",  "shift": "0052",   "ctrl": "-1", "altgr": "00ae",  "altgrShift": "2030" },
+    "14": { "vk": "VK_T",          "cap": "1", "base": "0074",  "shift": "0054",   "ctrl": "-1", "altgr": "2020",  "altgrShift": "02c7" },
+    "15": { "vk": "VK_Y",          "cap": "1", "base": "0079",  "shift": "0059",   "ctrl": "-1", "altgr": "00a5",  "altgrShift": "00c1" },
+    "16": { "vk": "VK_U",          "cap": "1", "base": "0075",  "shift": "0055",   "ctrl": "-1", "altgr": "00a8@", "altgrShift": "00a8" },
+    "17": { "vk": "VK_I",          "cap": "1", "base": "0069",  "shift": "0049",   "ctrl": "-1", "altgr": "005e@", "altgrShift": "02c6" },
+    "18": { "vk": "VK_O",          "cap": "1", "base": "006f",  "shift": "004f",   "ctrl": "-1", "altgr": "00f8",  "altgrShift": "00d8" },
+    "19": { "vk": "VK_P",          "cap": "1", "base": "0070",  "shift": "0050",   "ctrl": "-1", "altgr": "03c0",  "altgrShift": "220f" },
+    "1a": { "vk": "VK_OEM_4",      "cap": "0", "base": "005b",  "shift": "007b",   "ctrl": "-1", "altgr": "201c",  "altgrShift": "201d" },
+    "1b": { "vk": "VK_OEM_6",      "cap": "0", "base": "005d",  "shift": "007d",   "ctrl": "-1", "altgr": "2018",  "altgrShift": "2019" },
+    "2b": { "vk": "VK_OEM_5",      "cap": "0", "base": "005c",  "shift": "007c",   "ctrl": "-1", "altgr": "00ab",  "altgrShift": "00bb" },
+
+    "1e": { "vk": "VK_A",          "cap": "1", "base": "0061",  "shift": "0041",   "ctrl": "-1", "altgr": "00e5",  "altgrShift": "00c5" },
+    "1f": { "vk": "VK_S",          "cap": "1", "base": "0073",  "shift": "0053",   "ctrl": "-1", "altgr": "00df",  "altgrShift": "00cd" },
+    "20": { "vk": "VK_D",          "cap": "1", "base": "0064",  "shift": "0044",   "ctrl": "-1", "altgr": "2202",  "altgrShift": "00ce" },
+    "21": { "vk": "VK_F",          "cap": "1", "base": "0066",  "shift": "0046",   "ctrl": "-1", "altgr": "0192",  "altgrShift": "00cf" },
+    "22": { "vk": "VK_G",          "cap": "1", "base": "0067",  "shift": "0047",   "ctrl": "-1", "altgr": "00a9",  "altgrShift": "02dd" },
+    "23": { "vk": "VK_H",          "cap": "1", "base": "0068",  "shift": "0048",   "ctrl": "-1", "altgr": "02d9",  "altgrShift": "00d3" },
+    "24": { "vk": "VK_J",          "cap": "1", "base": "006a",  "shift": "004a",   "ctrl": "-1", "altgr": "2206",  "altgrShift": "00d4" },
+    "25": { "vk": "VK_K",          "cap": "1", "base": "006b",  "shift": "004b",   "ctrl": "-1", "altgr": "02da",  "altgrShift": "-1" },
+    "26": { "vk": "VK_L",          "cap": "1", "base": "006c",  "shift": "004c",   "ctrl": "-1", "altgr": "00ac",  "altgrShift": "00d2" },
+    "27": { "vk": "VK_OEM_1",      "cap": "0", "base": "003b",  "shift": "003a",   "ctrl": "-1", "altgr": "2026",  "altgrShift": "00da" },
+    "28": { "vk": "VK_OEM_7",      "cap": "0", "base": "0027",  "shift": "0022",   "ctrl": "-1", "altgr": "00e6",  "altgrShift": "00c6" },
+
+    "2c": { "vk": "VK_Z",          "cap": "1", "base": "007a",  "shift": "005a",   "ctrl": "-1", "altgr": "2126",  "altgrShift": "00b8" },
+    "2d": { "vk": "VK_X",          "cap": "1", "base": "0078",  "shift": "0058",   "ctrl": "-1", "altgr": "2248",  "altgrShift": "02db" },
+    "2e": { "vk": "VK_C",          "cap": "1", "base": "0063",  "shift": "0043",   "ctrl": "-1", "altgr": "00e7",  "altgrShift": "00c7" },
+    "2f": { "vk": "VK_V",          "cap": "1", "base": "0076",  "shift": "0056",   "ctrl": "-1", "altgr": "221a",  "altgrShift": "25ca" },
+    "30": { "vk": "VK_B",          "cap": "1", "base": "0062",  "shift": "0042",   "ctrl": "-1", "altgr": "222b",  "altgrShift": "0131" },
+    "31": { "vk": "VK_N",          "cap": "1", "base": "006e",  "shift": "004e",   "ctrl": "-1", "altgr": "007e@", "altgrShift": "02dc" },
+    "32": { "vk": "VK_M",          "cap": "1", "base": "006d",  "shift": "004d",   "ctrl": "-1", "altgr": "00b5",  "altgrShift": "00c2" },
+    "33": { "vk": "VK_OEM_COMMA",  "cap": "0", "base": "002c",  "shift": "003c",   "ctrl": "-1", "altgr": "2264",  "altgrShift": "00af" },
+    "34": { "vk": "VK_OEM_PERIOD", "cap": "0", "base": "002e",  "shift": "003e",   "ctrl": "-1", "altgr": "2265",  "altgrShift": "02d8" },
+    "35": { "vk": "VK_OEM_2",      "cap": "0", "base": "002f",  "shift": "003f",   "ctrl": "-1", "altgr": "00f7",  "altgrShift": "00bf" },
+
+    "39": { "vk": "VK_SPACE",      "cap": "0", "base": "0020",  "shift": "0020",   "ctrl": "0020", "altgr": "00a0", "altgrShift": "-1" }
+  },
+  "deadKeys": {
+    "0060": {
+      "name": "GRAVE ACCENT",
+      "combinations": {
+        "0061": "00e0",
+        "0065": "00e8",
+        "0069": "00ec",
+        "006f": "00f2",
+        "0075": "00f9",
+        "0041": "00c0",
+        "0045": "00c8",
+        "0049": "00cc",
+        "004f": "00d2",
+        "0055": "00d9",
+        "0020": "0060"
+      }
+    },
+    "00b4": {
+      "name": "ACUTE ACCENT",
+      "combinations": {
+        "0061": "00e1",
+        "0065": "00e9",
+        "0069": "00ed",
+        "006f": "00f3",
+        "0075": "00fa",
+        "0041": "00c1",
+        "0045": "00c9",
+        "0049": "00cd",
+        "004f": "00d3",
+        "0055": "00da",
+        "0020": "00b4"
+      }
+    },
+    "00a8": {
+      "name": "DIAERESIS",
+      "combinations": {
+        "0061": "00e4",
+        "0065": "00eb",
+        "0069": "00ef",
+        "006f": "00f6",
+        "0075": "00fc",
+        "0079": "00ff",
+        "0041": "00c4",
+        "0045": "00cb",
+        "0049": "00cf",
+        "004f": "00d6",
+        "0055": "00dc",
+        "0020": "00a8"
+      }
+    },
+    "005e": {
+      "name": "CIRCUMFLEX ACCENT",
+      "combinations": {
+        "0061": "00e2",
+        "0065": "00ea",
+        "0069": "00ee",
+        "006f": "00f4",
+        "0075": "00fb",
+        "0041": "00c2",
+        "0045": "00ca",
+        "0049": "00ce",
+        "004f": "00d4",
+        "0055": "00db",
+        "0020": "005e"
+      }
+    },
+    "007e": {
+      "name": "TILDE",
+      "combinations": {
+        "0061": "00e3",
+        "006e": "00f1",
+        "006f": "00f5",
+        "0041": "00c3",
+        "004e": "00d1",
+        "004f": "00d5",
+        "0020": "007e"
+      }
+    }
+  }
+}

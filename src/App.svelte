@@ -22,6 +22,7 @@
     <button
       class="lang-toggle__btn"
       class:lang-toggle__btn--active={appState.lang === "fr"}
+      aria-pressed={appState.lang === "fr"}
       onclick={() => setLang("fr")}
     >
       FR
@@ -29,6 +30,7 @@
     <button
       class="lang-toggle__btn"
       class:lang-toggle__btn--active={appState.lang === "en"}
+      aria-pressed={appState.lang === "en"}
       onclick={() => setLang("en")}
     >
       EN

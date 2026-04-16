@@ -124,10 +124,11 @@
       <div class="status status--error">{error}</div>
     {:else if layout}
       <!-- Layer toggle -->
-      <div class="layer-toggle">
+      <div class="layer-toggle" role="group" aria-label="Keyboard layer">
         <button
           class="layer-toggle__btn"
           class:layer-toggle__btn--active={activeLayer === "base"}
+          aria-pressed={activeLayer === "base"}
           onclick={() => (activeLayer = "base")}
         >
           {t(appState.lang, "preview.baseLayer")}
@@ -135,6 +136,7 @@
         <button
           class="layer-toggle__btn"
           class:layer-toggle__btn--active={activeLayer === "shift"}
+          aria-pressed={activeLayer === "shift"}
           onclick={() => (activeLayer = "shift")}
         >
           {t(appState.lang, "preview.shiftLayer")}
@@ -142,6 +144,7 @@
         <button
           class="layer-toggle__btn"
           class:layer-toggle__btn--active={activeLayer === "altgr"}
+          aria-pressed={activeLayer === "altgr"}
           onclick={() => (activeLayer = "altgr")}
         >
           {t(appState.lang, "preview.altgrLayer")}
@@ -149,6 +152,7 @@
         <button
           class="layer-toggle__btn"
           class:layer-toggle__btn--active={activeLayer === "altgrShift"}
+          aria-pressed={activeLayer === "altgrShift"}
           onclick={() => (activeLayer = "altgrShift")}
         >
           {t(appState.lang, "preview.altgrShiftLayer")}
