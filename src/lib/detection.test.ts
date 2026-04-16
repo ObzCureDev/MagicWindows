@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { layoutsWithChar, applyResponse, isExpectedPress } from "./detection";
-import type { DetectionCharEntry } from "./types";
+import { layoutsWithChar, applyResponse, isExpectedPress, pickBestQuestion } from "./detection";
+import type { DetectionCharEntry, DetectionCatalogue } from "./types";
 
 const AT: DetectionCharEntry = {
   char: "@",
@@ -72,5 +72,34 @@ describe("isExpectedPress", () => {
 
   it("false when eventCode does not match any candidate position", () => {
     expect(isExpectedPress(AT, all, "KeyZ")).toBe(false);
+  });
+});
+
+describe("pickBestQuestion", () => {
+  const CATALOGUE: DetectionCatalogue = {
+    generatedAt: "2026-04-16T00:00:00Z",
+    characters: [AT, NTILDE],
+  };
+
+  it("returns the entry that minimizes the worst-case bucket", () => {
+    // For all 6 layouts, '@' splits into {US,ES}=2, {UK}=1, {FR}=1, {DE}=1, {IT}=1, ABSENT=0 → max bucket 2
+    // 'ñ' splits into {ES}=1, ABSENT=5 → max bucket 5
+    // '@' wins.
+    const all = ["apple-us-qwerty", "apple-uk-qwerty", "apple-fr-azerty", "apple-de-qwertz", "apple-es-qwerty", "apple-it-qwerty"];
+    const result = pickBestQuestion(CATALOGUE, all);
+    expect(result?.char).toBe("@");
+  });
+
+  it("picks ñ when narrowing {US, ES}", () => {
+    // For {US, ES}: '@' splits as Digit2=2 (no narrowing) → max 2
+    //              'ñ' splits as Semicolon=1, ABSENT=1 → max 1 → wins
+    const result = pickBestQuestion(CATALOGUE, ["apple-us-qwerty", "apple-es-qwerty"]);
+    expect(result?.char).toBe("ñ");
+  });
+
+  it("returns null when no entry distinguishes any candidates", () => {
+    // Single candidate left — no question helps
+    const result = pickBestQuestion(CATALOGUE, ["apple-us-qwerty"]);
+    expect(result).toBeNull();
   });
 });

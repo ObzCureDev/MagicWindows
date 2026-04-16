@@ -17,7 +17,34 @@ export function pickBestQuestion(
   catalogue: DetectionCatalogue,
   candidates: string[],
 ): DetectionCharEntry | null {
-  throw new Error("not implemented");
+  if (candidates.length <= 1) return null;
+
+  const score = (entry: DetectionCharEntry): number => {
+    // Bucket size by event.code, plus an ABSENT bucket
+    const buckets = new Map<string, number>();
+    let absent = 0;
+    for (const id of candidates) {
+      const pos = entry.positions[id];
+      if (pos === undefined) {
+        absent += 1;
+      } else {
+        buckets.set(pos, (buckets.get(pos) ?? 0) + 1);
+      }
+    }
+    const maxPositionBucket = buckets.size === 0 ? 0 : Math.max(...buckets.values());
+    return Math.max(maxPositionBucket, absent);
+  };
+
+  let best: DetectionCharEntry | null = null;
+  let bestScore = candidates.length + 1;
+  for (const entry of catalogue.characters) {
+    const s = score(entry);
+    if (s < candidates.length && s < bestScore) {
+      bestScore = s;
+      best = entry;
+    }
+  }
+  return best;
 }
 
 /**
