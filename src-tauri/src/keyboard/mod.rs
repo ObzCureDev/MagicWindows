@@ -3,6 +3,8 @@ pub mod install;
 #[allow(dead_code)]
 pub mod kbd_c;
 pub mod klc;
+pub mod scancode_map;
+pub mod modifiers;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

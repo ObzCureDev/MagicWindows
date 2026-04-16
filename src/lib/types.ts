@@ -43,7 +43,7 @@ export interface DetectionResult {
   receivedChar: string;
 }
 
-export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "done" | "about";
+export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "done" | "about" | "modifiers";
 export type Lang = "en" | "fr";
 export type Theme = "light" | "dark" | "system";
 
@@ -75,3 +75,28 @@ export type DetectionPhase =
   | { kind: "asking"; char: DetectionCharEntry; candidates: string[] }
   | { kind: "detected"; layoutId: string }
   | { kind: "failed" };
+
+// ── Mac-style modifier keys (see docs/superpowers/specs/2026-04-17-mac-style-modifiers-design.md)
+
+export interface ModifierToggles {
+  swapCmdCtrlLeft: boolean;
+  swapCmdCtrlRight: boolean;
+  capsToCtrl: boolean;
+  swapOptionCmd: boolean;
+}
+
+export interface RawScancodePair {
+  /** 4-hex-char little-endian scancode emitted (e.g. "1D00" for LCtrl). */
+  newCode: string;
+  /** 4-hex-char little-endian scancode received from the keyboard. */
+  oldCode: string;
+}
+
+export interface ModifierState {
+  /** Best-effort reverse-derivation of which toggles match the current registry value. */
+  current: ModifierToggles;
+  /** True if the registry has entries that don't correspond to any of our toggles. */
+  hasExternalMappings: boolean;
+  /** All raw pairs found in the registry (for the warning details). */
+  rawEntries: RawScancodePair[];
+}
