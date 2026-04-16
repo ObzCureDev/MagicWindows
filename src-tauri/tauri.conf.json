@@ -24,6 +24,14 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/ObzCureDev/MagicWindows/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["msi", "nsis"],
@@ -34,6 +42,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["../layouts/*.json"]
+    "resources": {
+      "../layouts/*.json": "layouts/",
+      "kbd_dlls/*.dll": "kbd_dlls/"
+    }
   }
 }

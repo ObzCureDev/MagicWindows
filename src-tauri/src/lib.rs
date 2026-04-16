@@ -129,12 +129,11 @@ fn generate_klc(app: tauri::AppHandle, id: String) -> Result<String, String> {
     Ok(keyboard::klc::generate_klc(&layout))
 }
 
-/// Generate and install a keyboard layout on the system.
+/// Install a keyboard layout on the system using the bundled pre-compiled DLL.
 #[tauri::command]
 fn install_layout(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let layout = load_layout(&app, &id)?;
-    let klc_content = keyboard::klc::generate_klc(&layout);
-    keyboard::install::install_layout(&layout, &klc_content)
+    keyboard::install::install_layout(&layout, &app)
 }
 
 /// Uninstall a previously installed keyboard layout.
@@ -151,6 +150,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             list_layouts,
             get_layout,

@@ -1,5 +1,7 @@
 pub mod detect;
 pub mod install;
+#[allow(dead_code)]
+pub mod kbd_c;
 pub mod klc;
 
 use serde::{Deserialize, Serialize};

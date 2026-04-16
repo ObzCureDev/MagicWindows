@@ -1,7 +1,16 @@
+//! Keyboard layout installation and uninstallation.
+//!
+//! On Windows the `install_layout` function:
+//!   1. Resolves the pre-compiled DLL from the bundled `kbd_dlls/` resources.
+//!   2. Copies it to `%SystemRoot%\System32` (and `SysWOW64` on 64-bit Windows).
+//!   3. Creates the required registry entries via an elevated PowerShell script.
+//!
+//! The `uninstall_layout` function removes the registry entries and the DLL
+//! files.  No external tools (kbdutool, MSKLC, …) are required at runtime.
 use super::Layout;
 use std::path::PathBuf;
 
-/// Return the directory where MagicWindows stores installed layouts.
+/// Return the directory where MagicWindows stores temporary working files.
 pub fn get_install_dir() -> PathBuf {
     let mut dir = dirs_next_or_temp();
     dir.push("MagicWindows");
@@ -16,164 +25,149 @@ fn dirs_next_or_temp() -> PathBuf {
         .unwrap_or_else(|_| std::env::temp_dir())
 }
 
-// ── Windows implementation ──────────────────────────────────────────────
+// ── Windows implementation ──────────────────────────────────────────────────
 
 #[cfg(target_os = "windows")]
-pub fn install_layout(layout: &Layout, klc_content: &str) -> Result<(), String> {
+pub fn install_layout(layout: &Layout, app: &tauri::AppHandle) -> Result<(), String> {
     use std::fs;
-    use std::process::Command;
+
+    // ── 1. Locate the bundled pre-compiled DLL ──────────────────────────────
+    let dll_src = resolve_bundled_dll(layout, app)?;
 
     let install_dir = get_install_dir();
-    fs::create_dir_all(&install_dir).map_err(|e| format!("Failed to create install dir: {e}"))?;
+    fs::create_dir_all(&install_dir)
+        .map_err(|e| format!("Failed to create install dir: {e}"))?;
 
-    // Write the .klc file
-    let klc_path = install_dir.join(format!("{}.klc", layout.dll_name));
-    fs::write(&klc_path, klc_content)
-        .map_err(|e| format!("Failed to write KLC file: {e}"))?;
+    // ── 2. Build the elevated PowerShell install script ─────────────────────
+    //
+    // The script performs three privileged operations:
+    //   a. Copies the DLL to System32 (and SysWOW64 on 64-bit Windows).
+    //   b. Computes a unique registry key ID.
+    //   c. Creates the registry entries so Windows can discover the layout.
+    //
+    // We pass the DLL source path and layout metadata as parameters so the
+    // script is fully general.
+    let layout_name = layout
+        .name
+        .get("en")
+        .map(|s| s.as_str())
+        .unwrap_or(&layout.id);
 
-    // PowerShell install script.
-    //
-    // kbdutool discovery order:
-    //   1. Common MSKLC 1.4 install locations (x86 and x64 Program Files)
-    //   2. Older MSKLC install location without version suffix
-    //   3. PATH via Get-Command
-    //
-    // If none of those succeed the script throws a human-readable error that
-    // includes the official MSKLC download URL so non-technical users know
-    // exactly what to install.
-    //
-    // The script is written to a .ps1 file and then launched in a *new*
-    // elevated (administrator) PowerShell process via Start-Process -Verb RunAs
-    // so that copying the DLL into System32 succeeds.  The outer process waits
-    // for that elevated child to finish and surfaces its exit code.
     let ps_script = format!(
         r#"
 $ErrorActionPreference = 'Stop'
 
 # ── Privilege check ────────────────────────────────────────────────────────
-$currentPrincipal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-$isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {{
-    throw "MagicWindows must be run as Administrator to install keyboard layouts. Right-click the application and choose 'Run as administrator'."
+$principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {{
+    throw "MagicWindows must be run as Administrator to install keyboard layouts."
 }}
 
-# ── Locate kbdutool ────────────────────────────────────────────────────────
-$candidatePaths = @(
-    'C:\Program Files (x86)\Microsoft Keyboard Layout Creator 1.4\bin\i386\kbdutool.exe',
-    'C:\Program Files\Microsoft Keyboard Layout Creator 1.4\bin\i386\kbdutool.exe',
-    'C:\Program Files (x86)\Microsoft Keyboard Layout Creator\bin\i386\kbdutool.exe'
-)
+$DllPath   = '{dll_src}'
+$DllName   = '{dll_name}'
+$LocaleId  = '{locale_id}'
+$LayoutName = '{layout_name}'
 
-$kbdutoolPath = $null
-foreach ($candidate in $candidatePaths) {{
-    if (Test-Path $candidate) {{
-        $kbdutoolPath = $candidate
-        break
-    }}
+# ── Validate DLL exists ────────────────────────────────────────────────────
+if (-not (Test-Path -LiteralPath $DllPath)) {{
+    throw "Bundled DLL not found at: $DllPath"
 }}
 
-if (-not $kbdutoolPath) {{
-    $fromPath = Get-Command kbdutool -ErrorAction SilentlyContinue
-    if ($fromPath) {{
-        $kbdutoolPath = $fromPath.Source
-    }}
+# ── Generate unique registry key ID ───────────────────────────────────────
+$suffix       = $LocaleId.Substring(4, 4)
+$kbLayoutsRoot = 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts'
+$prefix = 1
+do {{
+    $layoutId = 'a{{0:x3}}{{1}}' -f $prefix, $suffix
+    $regPath  = Join-Path $kbLayoutsRoot $layoutId
+    $prefix++
+}} while (Test-Path -LiteralPath $regPath)
+
+# Derive unique 4-digit hex Layout Id value
+$existingIds = @()
+Get-ChildItem -Path $kbLayoutsRoot -ErrorAction SilentlyContinue | ForEach-Object {{
+    $val = (Get-ItemProperty -LiteralPath $_.PSPath -Name 'Layout Id' -ErrorAction SilentlyContinue).'Layout Id'
+    if ($val) {{ $existingIds += $val }}
+}}
+$layoutNumber = 1
+do {{
+    $layoutIdHex = '{{0:x4}}' -f $layoutNumber
+    $layoutNumber++
+}} while ($existingIds -contains $layoutIdHex)
+
+Write-Host "Registry key : $layoutId"
+Write-Host "Layout Id    : $layoutIdHex"
+
+# ── Copy DLL to system directories ────────────────────────────────────────
+$dllFileName = "$DllName.dll"
+$sys32       = Join-Path $env:SystemRoot 'System32'
+$destSys32   = Join-Path $sys32 $dllFileName
+Write-Host "Copying to $destSys32 ..."
+Copy-Item -LiteralPath $DllPath -Destination $destSys32 -Force
+
+$wow64 = Join-Path $env:SystemRoot 'SysWOW64'
+if (Test-Path -LiteralPath $wow64) {{
+    $destWow64 = Join-Path $wow64 $dllFileName
+    Write-Host "Copying to $destWow64 ..."
+    Copy-Item -LiteralPath $DllPath -Destination $destWow64 -Force
 }}
 
-if (-not $kbdutoolPath) {{
-    throw @"
-kbdutool.exe was not found. MagicWindows requires Microsoft Keyboard Layout Creator (MSKLC) to compile and install keyboard layouts.
+# ── Create registry entries ────────────────────────────────────────────────
+Write-Host "Creating registry entries at $regPath ..."
+New-Item -Path $regPath -Force | Out-Null
+New-ItemProperty -LiteralPath $regPath -Name 'Layout File' -Value $dllFileName   -PropertyType String -Force | Out-Null
+New-ItemProperty -LiteralPath $regPath -Name 'Layout Text' -Value $LayoutName    -PropertyType String -Force | Out-Null
+New-ItemProperty -LiteralPath $regPath -Name 'Layout Id'   -Value $layoutIdHex   -PropertyType String -Force | Out-Null
 
-Please download and install MSKLC 1.4 from:
-  https://www.microsoft.com/en-us/download/details.aspx?id=102134
-
-After installing MSKLC, try again.
-"@
-}}
-
-# ── Compile and install via kbdutool ──────────────────────────────────────
-$klcPath = '{klc}'
-$dllName = '{dll}'
-
-& "$kbdutoolPath" -u -s "$klcPath"
-if ($LASTEXITCODE -ne 0) {{
-    throw "kbdutool failed with exit code $LASTEXITCODE"
-}}
+Write-Host 'Keyboard layout installed successfully.'
 "#,
-        klc = klc_path.display(),
-        dll = layout.dll_name,
+        dll_src     = dll_src.display(),
+        dll_name    = layout.dll_name,
+        locale_id   = layout.locale_id,
+        layout_name = layout_name.replace('\'', "\\'"),
     );
 
-    let ps_path = install_dir.join("install.ps1");
-    fs::write(&ps_path, &ps_script)
-        .map_err(|e| format!("Failed to write install script: {e}"))?;
+    run_elevated_ps(&install_dir, "install", &ps_script)?;
+    log::info!("Layout {} installed successfully", layout.id);
+    Ok(())
+}
 
-    // Launch the script in an elevated PowerShell process.  Start-Process
-    // -Verb RunAs triggers the UAC prompt; -Wait makes this process block
-    // until the elevated child exits; -PassThru lets us capture the exit code.
-    // Stdout/stderr from the elevated child are not automatically inherited, so
-    // we redirect them to temporary files and read them back after the child
-    // exits.
-    let stdout_path = install_dir.join("install_stdout.txt");
-    let stderr_path = install_dir.join("install_stderr.txt");
+/// Resolve the path to the pre-compiled keyboard layout DLL bundled with the
+/// application.
+///
+/// Tauri bundles resources under `<resource_dir>/kbd_dlls/<name>.dll`.
+#[cfg(target_os = "windows")]
+fn resolve_bundled_dll(
+    layout: &Layout,
+    app: &tauri::AppHandle,
+) -> Result<PathBuf, String> {
+    use tauri::Manager;
 
-    // This outer script uses Start-Process to spawn the elevated child and
-    // captures its streams.
-    let launcher = format!(
-        r#"
-$proc = Start-Process powershell `
-    -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{ps}') `
-    -Verb RunAs `
-    -Wait `
-    -PassThru `
-    -RedirectStandardOutput '{stdout}' `
-    -RedirectStandardError  '{stderr}'
-exit $proc.ExitCode
-"#,
-        ps     = ps_path.display(),
-        stdout = stdout_path.display(),
-        stderr = stderr_path.display(),
-    );
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Cannot resolve resource dir: {e}"))?;
 
-    let output = Command::new("powershell")
-        .args([
-            "-ExecutionPolicy",
-            "Bypass",
-            "-NoProfile",
-            "-Command",
-            &launcher,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run PowerShell launcher: {e}"))?;
+    let dll_path = resource_dir
+        .join("kbd_dlls")
+        .join(format!("{}.dll", layout.dll_name));
 
-    if output.status.success() {
-        log::info!("Layout {} installed successfully", layout.id);
-        Ok(())
-    } else {
-        // Try to surface the error text written by the elevated child first;
-        // fall back to the launcher's own stderr if those files are absent.
-        let child_stderr = fs::read_to_string(&stderr_path).unwrap_or_default();
-        let child_stdout = fs::read_to_string(&stdout_path).unwrap_or_default();
-        let launcher_stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-        let detail = [child_stderr.trim(), child_stdout.trim(), launcher_stderr.trim()]
-            .iter()
-            .filter(|s| !s.is_empty())
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        Err(format!("Installation failed: {detail}"))
+    if !dll_path.exists() {
+        return Err(format!(
+            "Bundled keyboard DLL not found: {}. \
+             This is a build issue – please reinstall MagicWindows.",
+            dll_path.display()
+        ));
     }
+
+    Ok(dll_path)
 }
 
 #[cfg(target_os = "windows")]
 pub fn uninstall_layout(layout: &Layout) -> Result<(), String> {
     use std::fs;
-    use std::process::Command;
 
     let install_dir = get_install_dir();
-    // Ensure the directory exists so we can write the temporary script and
-    // capture stream files even when the layout was never fully installed.
     fs::create_dir_all(&install_dir)
         .map_err(|e| format!("Failed to create install dir: {e}"))?;
 
@@ -181,53 +175,60 @@ pub fn uninstall_layout(layout: &Layout) -> Result<(), String> {
         r#"
 $ErrorActionPreference = 'Stop'
 
-# ── Privilege check ────────────────────────────────────────────────────────
-$currentPrincipal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-$isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {{
-    throw "MagicWindows must be run as Administrator to uninstall keyboard layouts. Right-click the application and choose 'Run as administrator'."
+$principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {{
+    throw "MagicWindows must be run as Administrator to uninstall keyboard layouts."
 }}
 
-$dllName = '{dll}'
+$DllName = '{dll}'
 
 # ── Remove registry entries ────────────────────────────────────────────────
 $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts'
 $entries = Get-ChildItem $regPath | Where-Object {{
-    (Get-ItemProperty $_.PSPath).'Layout File' -eq "$dllName.dll"
+    (Get-ItemProperty $_.PSPath).'Layout File' -eq "$DllName.dll"
 }}
 foreach ($entry in $entries) {{
     Remove-Item $entry.PSPath -Force
 }}
 
-# ── Remove the DLL from System32 ──────────────────────────────────────────
-$sys32Path = "$env:SystemRoot\System32\$dllName.dll"
-if (Test-Path $sys32Path) {{
-    Remove-Item $sys32Path -Force
-}}
+# ── Remove DLL from System32 ───────────────────────────────────────────────
+$sys32Dll = "$env:SystemRoot\System32\$DllName.dll"
+if (Test-Path $sys32Dll) {{ Remove-Item $sys32Dll -Force }}
 
-# ── Remove the DLL from SysWOW64 (32-bit copy on 64-bit Windows) ──────────
-$wow64Path = "$env:SystemRoot\SysWOW64\$dllName.dll"
-if (Test-Path $wow64Path) {{
-    Remove-Item $wow64Path -Force
-}}
+# ── Remove DLL from SysWOW64 ──────────────────────────────────────────────
+$wow64Dll = "$env:SystemRoot\SysWOW64\$DllName.dll"
+if (Test-Path $wow64Dll) {{ Remove-Item $wow64Dll -Force }}
 
-# ── Clean up local working files ──────────────────────────────────────────
-$installDir = '{install_dir}'
-if (Test-Path $installDir) {{
-    Remove-Item "$installDir\$dllName.*" -Force -ErrorAction SilentlyContinue
-}}
+Write-Host 'Keyboard layout uninstalled successfully.'
 "#,
-        dll         = layout.dll_name,
-        install_dir = install_dir.display(),
+        dll = layout.dll_name,
     );
 
-    let ps_path = install_dir.join("uninstall.ps1");
-    fs::write(&ps_path, &ps_script)
-        .map_err(|e| format!("Failed to write uninstall script: {e}"))?;
+    run_elevated_ps(&install_dir, "uninstall", &ps_script)?;
+    log::info!("Layout {} uninstalled successfully", layout.id);
+    Ok(())
+}
 
-    let stdout_path = install_dir.join("uninstall_stdout.txt");
-    let stderr_path = install_dir.join("uninstall_stderr.txt");
+/// Write `ps_script` to a `.ps1` file and run it in an elevated PowerShell
+/// process.  Blocks until the elevated child exits, then returns success or
+/// a descriptive error.
+#[cfg(target_os = "windows")]
+fn run_elevated_ps(
+    work_dir: &std::path::Path,
+    label: &str,
+    ps_script: &str,
+) -> Result<(), String> {
+    use std::fs;
+    use std::process::Command;
 
+    let ps_path     = work_dir.join(format!("{label}.ps1"));
+    let stdout_path = work_dir.join(format!("{label}_stdout.txt"));
+    let stderr_path = work_dir.join(format!("{label}_stderr.txt"));
+
+    fs::write(&ps_path, ps_script)
+        .map_err(|e| format!("Failed to write {label} script: {e}"))?;
+
+    // Spawn the elevated child and capture its streams via Start-Process.
     let launcher = format!(
         r#"
 $proc = Start-Process powershell `
@@ -245,39 +246,32 @@ exit $proc.ExitCode
     );
 
     let output = Command::new("powershell")
-        .args([
-            "-ExecutionPolicy",
-            "Bypass",
-            "-NoProfile",
-            "-Command",
-            &launcher,
-        ])
+        .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", &launcher])
         .output()
         .map_err(|e| format!("Failed to run PowerShell launcher: {e}"))?;
 
     if output.status.success() {
-        log::info!("Layout {} uninstalled successfully", layout.id);
-        Ok(())
-    } else {
-        let child_stderr = fs::read_to_string(&stderr_path).unwrap_or_default();
-        let child_stdout = fs::read_to_string(&stdout_path).unwrap_or_default();
-        let launcher_stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-
-        let detail = [child_stderr.trim(), child_stdout.trim(), launcher_stderr.trim()]
-            .iter()
-            .filter(|s| !s.is_empty())
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        Err(format!("Uninstallation failed: {detail}"))
+        return Ok(());
     }
+
+    let child_stderr   = fs::read_to_string(&stderr_path).unwrap_or_default();
+    let child_stdout   = fs::read_to_string(&stdout_path).unwrap_or_default();
+    let launcher_stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+
+    let detail = [child_stderr.trim(), child_stdout.trim(), launcher_stderr.trim()]
+        .iter()
+        .filter(|s| !s.is_empty())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    Err(format!("Operation failed: {detail}"))
 }
 
-// ── Non-Windows stubs ───────────────────────────────────────────────────
+// ── Non-Windows stubs ───────────────────────────────────────────────────────
 
 #[cfg(not(target_os = "windows"))]
-pub fn install_layout(_layout: &Layout, _klc_content: &str) -> Result<(), String> {
+pub fn install_layout(_layout: &Layout, _app: &tauri::AppHandle) -> Result<(), String> {
     Err("Installation requires Windows.".to_string())
 }
 
