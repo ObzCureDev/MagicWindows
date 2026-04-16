@@ -65,6 +65,14 @@ export const translations: Record<string, Record<string, unknown>> = {
       uninstall: "Uninstall layout",
       close: "Close",
     },
+    about: {
+      title: "About MagicWindows",
+      version: "Version {version}",
+      description: "Install Apple Magic Keyboard layouts on Windows so every keycap matches what you type.",
+      license: "Licensed under Apache 2.0",
+      github: "View on GitHub",
+      back: "Back",
+    },
     common: {
       next: "Next",
       back: "Back",
@@ -139,6 +147,14 @@ export const translations: Record<string, Record<string, unknown>> = {
         "Utilisez Win+Espace pour basculer entre les dispositions clavier.",
       uninstall: "Desinstaller la disposition",
       close: "Fermer",
+    },
+    about: {
+      title: "A propos de MagicWindows",
+      version: "Version {version}",
+      description: "Installez les dispositions Apple Magic Keyboard sur Windows pour que chaque touche corresponde a ce que vous tapez.",
+      license: "Licence Apache 2.0",
+      github: "Voir sur GitHub",
+      back: "Retour",
     },
     common: {
       next: "Suivant",

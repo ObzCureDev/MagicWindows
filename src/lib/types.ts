@@ -43,5 +43,6 @@ export interface DetectionResult {
   receivedChar: string;
 }
 
-export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "done";
+export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "done" | "about";
 export type Lang = "en" | "fr";
+export type Theme = "light" | "dark" | "system";

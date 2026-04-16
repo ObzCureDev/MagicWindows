@@ -1,40 +1,75 @@
 <script lang="ts">
   import { appState } from "./lib/stores";
   import { t } from "./lib/i18n";
+  import type { Theme } from "./lib/types";
   import Welcome from "./pages/Welcome.svelte";
   import Detect from "./pages/Detect.svelte";
   import Select from "./pages/Select.svelte";
   import Preview from "./pages/Preview.svelte";
   import Install from "./pages/Install.svelte";
   import Done from "./pages/Done.svelte";
+  import About from "./pages/About.svelte";
 
   function setLang(lang: "en" | "fr") {
     appState.lang = lang;
   }
+
+  function cycleTheme() {
+    const order: Theme[] = ["system", "dark", "light"];
+    const idx = order.indexOf(appState.theme);
+    appState.theme = order[(idx + 1) % order.length];
+    applyTheme(appState.theme);
+  }
+
+  function applyTheme(theme: Theme) {
+    if (theme === "system") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  }
+
+  function themeIcon(theme: Theme): string {
+    if (theme === "light") return "\u2600"; // sun
+    if (theme === "dark") return "\u263E";  // moon
+    return "\u25D1"; // half circle = system
+  }
+
+  // Apply on load
+  applyTheme(appState.theme);
 </script>
 
 <div class="top-bar">
-  <div class="top-bar__title">
+  <button class="top-bar__title" onclick={() => appState.page = "about"}>
     <img src="/MagicWindows.png" alt="" class="top-bar__title-icon" />
     {t(appState.lang, "appTitle")}
-  </div>
-  <div class="lang-toggle">
+  </button>
+  <div class="top-bar__controls">
     <button
-      class="lang-toggle__btn"
-      class:lang-toggle__btn--active={appState.lang === "fr"}
-      aria-pressed={appState.lang === "fr"}
-      onclick={() => setLang("fr")}
+      class="theme-toggle"
+      onclick={cycleTheme}
+      title={appState.theme === "system" ? "System theme" : appState.theme === "dark" ? "Dark" : "Light"}
     >
-      FR
+      {themeIcon(appState.theme)}
     </button>
-    <button
-      class="lang-toggle__btn"
-      class:lang-toggle__btn--active={appState.lang === "en"}
-      aria-pressed={appState.lang === "en"}
-      onclick={() => setLang("en")}
-    >
-      EN
-    </button>
+    <div class="lang-toggle">
+      <button
+        class="lang-toggle__btn"
+        class:lang-toggle__btn--active={appState.lang === "fr"}
+        aria-pressed={appState.lang === "fr"}
+        onclick={() => setLang("fr")}
+      >
+        FR
+      </button>
+      <button
+        class="lang-toggle__btn"
+        class:lang-toggle__btn--active={appState.lang === "en"}
+        aria-pressed={appState.lang === "en"}
+        onclick={() => setLang("en")}
+      >
+        EN
+      </button>
+    </div>
   </div>
 </div>
 
@@ -50,4 +85,6 @@
   <Install />
 {:else if appState.page === "done"}
   <Done />
+{:else if appState.page === "about"}
+  <About />
 {/if}

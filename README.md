@@ -65,9 +65,11 @@ Plus many AltGr (Option) layer differences for special characters like `{`, `}`,
 | Layout | Status |
 |---|---|
 | French AZERTY (Apple Magic Keyboard) | Available |
-| US QWERTY (Apple Magic Keyboard) | Planned |
-| UK QWERTY (Apple Magic Keyboard) | Planned |
-| German QWERTZ (Apple Magic Keyboard) | Planned |
+| US QWERTY (Apple Magic Keyboard) | Available |
+| UK QWERTY (Apple Magic Keyboard) | Available |
+| German QWERTZ (Apple Magic Keyboard) | Available |
+| Spanish QWERTY (Apple Magic Keyboard) | Available |
+| Italian QWERTY (Apple Magic Keyboard) | Available |
 
 Want to add your layout? See [Contributing](#contributing).
 
