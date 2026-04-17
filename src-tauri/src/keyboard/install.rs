@@ -411,28 +411,69 @@ fn run_elevated_ps(
     use std::fs;
     use std::process::Command;
 
-    let ps_path     = work_dir.join(format!("{label}.ps1"));
-    let stdout_path = work_dir.join(format!("{label}_stdout.txt"));
-    let stderr_path = work_dir.join(format!("{label}_stderr.txt"));
+    let ps_path         = work_dir.join(format!("{label}.ps1"));
+    let transcript_path = work_dir.join(format!("{label}_transcript.txt"));
+    let exitcode_path   = work_dir.join(format!("{label}_exitcode.txt"));
 
-    fs::write(&ps_path, ps_script)
+    // ── Build the child script with self-contained logging.
+    //
+    // `Start-Process -Verb RunAs` uses ShellExecuteEx, which does NOT support
+    // -RedirectStandardOutput / -RedirectStandardError. Combining the two yields
+    // a $null process object and (silently) a launcher exit of 0, making the
+    // parent believe the install succeeded when nothing actually ran. The fix:
+    //  1. Don't redirect from the parent.
+    //  2. The child opens its own transcript and writes its exit code to a known
+    //     file before exiting, so the parent can detect "child never ran" vs
+    //     "child ran and failed" vs "child ran and succeeded".
+    let wrapped = format!(
+        r#"$ErrorActionPreference = 'Continue'
+try {{ Start-Transcript -Path '{transcript}' -Force | Out-Null }} catch {{ }}
+'PENDING' | Out-File -LiteralPath '{exitcode}' -Encoding ascii -Force
+$childExit = 1
+try {{
+{body}
+    $childExit = 0
+}} catch {{
+    Write-Host "[run_elevated_ps] child threw: $_"
+    $childExit = 1
+}}
+try {{ Stop-Transcript | Out-Null }} catch {{ }}
+$childExit | Out-File -LiteralPath '{exitcode}' -Encoding ascii -Force
+exit $childExit
+"#,
+        transcript = transcript_path.display(),
+        exitcode   = exitcode_path.display(),
+        body       = ps_script,
+    );
+
+    fs::write(&ps_path, &wrapped)
         .map_err(|e| format!("Failed to write {label} script: {e}"))?;
 
-    // Spawn the elevated child and capture its streams via Start-Process.
+    // Pre-write a sentinel so we can distinguish "child never ran" from "child wrote 0".
+    let _ = fs::write(&exitcode_path, "NEVER_RAN");
+
+    // Launcher: spawn elevated child WITHOUT stream redirection (incompatible with -Verb RunAs).
+    // Detect the $null-process case explicitly to surface UAC-cancel / launch failures.
     let launcher = format!(
         r#"
-$proc = Start-Process powershell `
-    -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{ps}') `
-    -Verb RunAs `
-    -Wait `
-    -PassThru `
-    -RedirectStandardOutput '{stdout}' `
-    -RedirectStandardError  '{stderr}'
+$ErrorActionPreference = 'Stop'
+try {{
+    $proc = Start-Process powershell `
+        -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{ps}') `
+        -Verb RunAs `
+        -Wait `
+        -PassThru
+}} catch {{
+    Write-Error "Start-Process failed: $_"
+    exit 2
+}}
+if ($null -eq $proc) {{
+    Write-Error "Start-Process returned null (UAC cancelled?)"
+    exit 3
+}}
 exit $proc.ExitCode
 "#,
-        ps     = ps_path.display(),
-        stdout = stdout_path.display(),
-        stderr = stderr_path.display(),
+        ps = ps_path.display(),
     );
 
     let output = Command::new("powershell")
@@ -440,23 +481,41 @@ exit $proc.ExitCode
         .output()
         .map_err(|e| format!("Failed to run PowerShell launcher: {e}"))?;
 
-    if output.status.success() {
-        let child_stdout = fs::read_to_string(&stdout_path).unwrap_or_default();
-        return Ok(child_stdout);
-    }
-
-    let child_stderr   = fs::read_to_string(&stderr_path).unwrap_or_default();
-    let child_stdout   = fs::read_to_string(&stdout_path).unwrap_or_default();
+    let transcript = fs::read_to_string(&transcript_path).unwrap_or_default();
+    let exitcode_str = fs::read_to_string(&exitcode_path).unwrap_or_default().trim().to_string();
     let launcher_stderr = String::from_utf8_lossy(&output.stderr).into_owned();
 
-    let detail = [child_stderr.trim(), child_stdout.trim(), launcher_stderr.trim()]
-        .iter()
-        .filter(|s| !s.is_empty())
-        .cloned()
-        .collect::<Vec<_>>()
-        .join("\n");
+    // The launcher must report success AND the child must have updated the exitcode file
+    // with a 0. NEVER_RAN means Start-Process didn't actually launch the child.
+    if !output.status.success() {
+        return Err(format!(
+            "Elevation launcher failed (exit {:?}): {}\nTranscript:\n{}",
+            output.status.code(),
+            launcher_stderr.trim(),
+            transcript.trim(),
+        ));
+    }
+    if exitcode_str == "NEVER_RAN" {
+        return Err(format!(
+            "Elevated child never ran (UAC cancelled or Start-Process failed silently). Launcher stderr: {}",
+            launcher_stderr.trim(),
+        ));
+    }
+    if exitcode_str == "PENDING" {
+        return Err(format!(
+            "Elevated child started but did not finish (crashed before exitcode write). Transcript:\n{}",
+            transcript.trim(),
+        ));
+    }
+    if exitcode_str != "0" {
+        return Err(format!(
+            "Elevated child failed (exit {}). Transcript:\n{}",
+            exitcode_str,
+            transcript.trim(),
+        ));
+    }
 
-    Err(format!("Operation failed: {detail}"))
+    Ok(transcript)
 }
 
 // ── Non-Windows stubs ───────────────────────────────────────────────────────
