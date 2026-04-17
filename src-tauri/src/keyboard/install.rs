@@ -467,3 +467,14 @@ pub fn install_layout(_layout: &Layout, _app: &tauri::AppHandle) -> Result<(), S
 pub fn uninstall_layout(_layout: &Layout) -> Result<(), String> {
     Err("Uninstallation requires Windows.".to_string())
 }
+
+/// Public re-export of the elevated PowerShell runner so other modules in the
+/// keyboard crate (e.g. modifiers.rs) can use the same UAC + capture logic.
+#[cfg(target_os = "windows")]
+pub fn run_elevated_ps_for_modifiers(
+    work_dir: &std::path::Path,
+    label: &str,
+    ps_script: &str,
+) -> Result<String, String> {
+    run_elevated_ps(work_dir, label, ps_script)
+}
