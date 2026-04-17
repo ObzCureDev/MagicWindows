@@ -31,6 +31,8 @@
   let detectedId = $state<string | null>(null);
   let detectedLayout = $state<Layout | null>(null);
   let failed = $state(false);
+  // TEMP debug: last keypress info shown on-screen so the user can report what
+  // their physical keys actually send.
   let showWrongToast = $state(false);
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
   // Chars already shown to the user — never re-ask the same one even if it would still score well.

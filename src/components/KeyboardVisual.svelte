@@ -12,10 +12,22 @@
   const isISO = $derived(!!layout.keys["56"]);
 
   // ── Scancode rows ─────────────────────────────────────────────────────
-  const numberRow = ["29", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d"];
+  // On Apple ISO Magic Keyboards plugged into Windows, scancodes 29 and 56 are
+  // physically swapped vs a generic PC ISO board: the top-left "section" key
+  // (above Tab, next to 1) sends scancode 56, and the </> key (between LShift
+  // and Z/W) sends scancode 29. The visual must mirror the PHYSICAL positions
+  // the user sees on their keycaps — so for ISO layouts we render scancode 56
+  // at the top-left of the number row, and scancode 29 in the bottom-row
+  // 102nd-key slot.
+  const numberRow = $derived(
+    isISO
+      ? ["56", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d"]
+      : ["29", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d"],
+  );
   const topRow    = ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b"];
   const homeRow   = ["1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27", "28", "2b"];
   const bottomRow = ["2c", "2d", "2e", "2f", "30", "31", "32", "33", "34", "35"];
+  const isoExtraScancode = "29"; // bottom-row 102nd-key slot, after LShift, on Apple ISO
 
   // ── Character helpers ─────────────────────────────────────────────────
   function hexToChar(hex: string): string {
@@ -348,13 +360,13 @@
         <div class="key key--lshift-iso key--mod" title="Shift">
           <span class="key__mod-label">shift</span>
         </div>
-        {@const isoChars = getKeyChars("56")}
+        {@const isoChars = getKeyChars(isoExtraScancode)}
         <div
           class="key key--char key--iso-extra"
-          class:key--different={isDifferent("56")}
-          class:key--dead={isDeadKey("56")}
-          title={getTooltip("56")}
-          aria-label={getKeyLabel("56")}
+          class:key--different={isDifferent(isoExtraScancode)}
+          class:key--dead={isDeadKey(isoExtraScancode)}
+          title={getTooltip(isoExtraScancode)}
+          aria-label={getKeyLabel(isoExtraScancode)}
         >
           <span class="key__tr">{isoChars.tr}</span>
           <span class="key__tl">{isoChars.tl}</span>
