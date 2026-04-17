@@ -8,6 +8,20 @@
 
   let layout = $state<Layout | null>(null);
   let text = $state("");
+  let lastCode = $state("");
+  let lastKey = $state("");
+  let lastMods = $state("");
+
+  function onKey(e: KeyboardEvent) {
+    lastCode = e.code;
+    lastKey = e.key;
+    const mods = [];
+    if (e.shiftKey) mods.push("shift");
+    if (e.ctrlKey)  mods.push("ctrl");
+    if (e.altKey)   mods.push("alt");
+    if (e.metaKey)  mods.push("meta");
+    lastMods = mods.length ? mods.join("+") : "—";
+  }
 
   onMount(async () => {
     if (!appState.selectedLayoutId) {
@@ -42,8 +56,15 @@
     class="test-input"
     placeholder={t(appState.lang, "test.placeholder")}
     bind:value={text}
+    onkeydown={onKey}
     autofocus
   ></textarea>
+
+  {#if lastCode}
+    <p class="test-debug">
+      last key: code=<b>{lastCode}</b> key=<b>{lastKey}</b> mods=<b>{lastMods}</b>
+    </p>
+  {/if}
 
   {#if layout}
     <div class="test-kbd">
@@ -99,6 +120,14 @@
   .test-input:focus {
     outline: 2px solid var(--color-primary, #2865d4);
     outline-offset: -1px;
+  }
+  .test-debug {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    opacity: 0.8;
   }
   .test-kbd {
     flex: 1 1 auto;

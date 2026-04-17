@@ -88,9 +88,13 @@ fn compile_keyboard_dlls() -> Result<(), String> {
     fs::create_dir_all(&c_build_dir)
         .map_err(|e| format!("create kbd_c_build dir: {e}"))?;
 
-    // Final DLL destination: src-tauri/kbd_dlls/  (committed alongside the
-    // source so that Tauri can glob them as resources in tauri.conf.json).
-    let dll_dest_dir = manifest_dir.join("kbd_dlls");
+    // Final DLL destination: target/kbd_dlls/ (outside src-tauri so that
+    // the Tauri dev watcher doesn't see them changing and loop constantly,
+    // and then tauri.conf.json bundles them from ../target/kbd_dlls/*.dll).
+    let dll_dest_dir = manifest_dir.parent()
+        .ok_or("cannot get parent of manifest dir")?
+        .join("target")
+        .join("kbd_dlls");
     fs::create_dir_all(&dll_dest_dir)
         .map_err(|e| format!("create kbd_dlls dir: {e}"))?;
 
