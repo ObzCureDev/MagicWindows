@@ -53,13 +53,10 @@ pub fn install_layout(layout: &Layout, app: &tauri::AppHandle) -> Result<(), Str
         .map(|s| s.as_str())
         .unwrap_or(&layout.id);
 
-    // The elevated PS writes markers to this file, NOT stdout — `Start-Process -Verb RunAs`
-    // with -RedirectStandardOutput is unreliable, and `Write-Host` doesn't go to stdout
-    // anyway (it writes to the Information stream in PS 5.1+). Reading a file is robust.
-    let markers_path = install_dir.join("install_markers.txt");
-    // Pre-delete any stale markers from a previous run so we never read stale data.
-    let _ = std::fs::remove_file(&markers_path);
-
+    // The elevated PS writes markers to HKLM (not a file, not stdout). File writes
+    // from elevated -> user's LOCALAPPDATA fail silently in some configurations, and
+    // stdout capture via Start-Process -Verb RunAs is unreliable. The registry is the
+    // one place admin can always reliably write and the unprivileged parent can read.
     let ps_script = format!(
         r#"
 $ErrorActionPreference = 'Stop'
@@ -124,19 +121,20 @@ do {{
 Write-Host "Registry key : $layoutId"
 Write-Host "Layout Id    : $layoutIdHex"
 
-# Emit machine-parseable markers to a known FILE so the parent Rust process can pick up
-# the generated KLID and language tag, then add the layout to the current user's input
-# methods in a separate (non-elevated) step. We write to a file (not stdout) because
-# Start-Process -Verb RunAs can't reliably redirect stdout from the elevated child.
+# Emit machine-parseable markers to HKLM so the parent Rust process can pick up the
+# generated KLID and language tag, then add the layout to the current user's input
+# methods in a separate (non-elevated) step. Registry is reliable from elevated PS;
+# stdout capture and cross-user file writes are not.
 $langIdHex = $LocaleId.Substring(4, 4)
 $langTag   = [System.Globalization.CultureInfo]::new([int]("0x$langIdHex")).Name
-$markersPath = '{markers_path}'
-@(
-    "MAGICWINDOWS_KLID=$layoutId",
-    "MAGICWINDOWS_LANGID=$langIdHex",
-    "MAGICWINDOWS_LANGTAG=$langTag"
-) | Out-File -FilePath $markersPath -Encoding ASCII -Force
-Write-Host "Markers written to $markersPath"
+$markerKey = 'HKLM:\SOFTWARE\MagicWindows'
+if (-not (Test-Path -LiteralPath $markerKey)) {{
+    New-Item -Path $markerKey -Force | Out-Null
+}}
+Set-ItemProperty -LiteralPath $markerKey -Name 'LastInstalledKLID'    -Value $layoutId  -Force
+Set-ItemProperty -LiteralPath $markerKey -Name 'LastInstalledLANGID'  -Value $langIdHex -Force
+Set-ItemProperty -LiteralPath $markerKey -Name 'LastInstalledLANGTAG' -Value $langTag   -Force
+Write-Host "Markers written to $markerKey"
 
 # ── Copy DLL to system directories ────────────────────────────────────────
 $dllFileName = "$DllName.dll"
@@ -161,56 +159,61 @@ New-ItemProperty -LiteralPath $regPath -Name 'Layout Id'   -Value $layoutIdHex  
 
 Write-Host 'Keyboard layout installed successfully.'
 "#,
-        dll_src       = dll_src.display(),
-        dll_name      = layout.dll_name,
-        locale_id     = layout.locale_id,
-        layout_name   = layout_name.replace('\'', "\\'"),
-        markers_path  = markers_path.display(),
+        dll_src     = dll_src.display(),
+        dll_name    = layout.dll_name,
+        locale_id   = layout.locale_id,
+        layout_name = layout_name.replace('\'', "\\'"),
     );
 
     let _ = run_elevated_ps(&install_dir, "install", &ps_script)?;
     log::info!("Layout {} installed successfully", layout.id);
 
-    // ── 3. Activate: add the new KLID to the user's input methods ──────────
-    // Read markers from the FILE the elevated PS wrote (not stdout — see comment above).
-    // Then run a non-elevated PowerShell in the original user's context to add the KLID
-    // to their language list AND to HKCU\Keyboard Layout\Preload (belt-and-suspenders).
-    match std::fs::read_to_string(&markers_path) {
-        Ok(content) => {
-            if let Some((klid, lang_tag)) = parse_install_markers(&content) {
-                match activate_for_user(&install_dir, &klid, &lang_tag) {
-                    Ok(()) => log::info!("Layout {} activated for current user (KLID {klid}, tag {lang_tag})", layout.id),
-                    Err(e) => log::warn!("Layout installed but auto-activation failed: {e}"),
-                }
-            } else {
-                log::warn!("Markers file present but no KLID/LANGTAG parsed from {}", markers_path.display());
+    // ── 3. Activate: read markers from HKLM, then add the KLID to the user's input methods.
+    match read_install_markers_from_registry() {
+        Ok((klid, lang_tag)) => {
+            match activate_for_user(&install_dir, &klid, &lang_tag) {
+                Ok(()) => log::info!("Layout {} activated for current user (KLID {klid}, tag {lang_tag})", layout.id),
+                Err(e) => log::warn!("Layout installed but auto-activation failed: {e}"),
             }
         }
         Err(e) => {
-            log::warn!("Could not read markers file {}: {e}; skipping auto-activation", markers_path.display());
+            log::warn!("Could not read install markers from HKLM: {e}; skipping auto-activation");
         }
     }
     Ok(())
 }
 
-/// Pulls `MAGICWINDOWS_KLID=...` and `MAGICWINDOWS_LANGTAG=...` lines out of the
-/// elevated install script's stdout. Returns (klid, langTag) if both are found.
+/// Read the KLID and language tag the elevated install step stashed in
+/// HKLM:\SOFTWARE\MagicWindows. Unprivileged PowerShell read.
 #[cfg(target_os = "windows")]
-fn parse_install_markers(stdout: &str) -> Option<(String, String)> {
-    let mut klid: Option<String> = None;
-    let mut tag: Option<String> = None;
-    for line in stdout.lines() {
-        let line = line.trim();
-        if let Some(v) = line.strip_prefix("MAGICWINDOWS_KLID=") {
-            klid = Some(v.trim().to_string());
-        } else if let Some(v) = line.strip_prefix("MAGICWINDOWS_LANGTAG=") {
-            tag = Some(v.trim().to_string());
-        }
+fn read_install_markers_from_registry() -> Result<(String, String), String> {
+    use std::process::Command;
+    let script = r#"
+$key = 'HKLM:\SOFTWARE\MagicWindows'
+if (-not (Test-Path -LiteralPath $key)) { Write-Output 'NONE'; exit 0 }
+$klid    = (Get-ItemProperty -LiteralPath $key -Name 'LastInstalledKLID'    -ErrorAction SilentlyContinue).LastInstalledKLID
+$langTag = (Get-ItemProperty -LiteralPath $key -Name 'LastInstalledLANGTAG' -ErrorAction SilentlyContinue).LastInstalledLANGTAG
+if (-not $klid -or -not $langTag) { Write-Output 'NONE'; exit 0 }
+Write-Output "$klid|$langTag"
+"#;
+    let out = Command::new("powershell")
+        .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
+        .output()
+        .map_err(|e| format!("powershell invoke failed: {e}"))?;
+    if !out.status.success() {
+        return Err(format!("powershell read failed: {}", String::from_utf8_lossy(&out.stderr).trim()));
     }
-    match (klid, tag) {
-        (Some(k), Some(t)) if !k.is_empty() && !t.is_empty() => Some((k, t)),
-        _ => None,
+    let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if stdout == "NONE" || stdout.is_empty() {
+        return Err("HKLM markers absent".to_string());
     }
+    let mut parts = stdout.splitn(2, '|');
+    let klid = parts.next().ok_or("malformed marker output")?.trim().to_string();
+    let tag  = parts.next().ok_or("malformed marker output")?.trim().to_string();
+    if klid.is_empty() || tag.is_empty() {
+        return Err("empty KLID or LANGTAG in markers".to_string());
+    }
+    Ok((klid, tag))
 }
 
 /// Adds the freshly-installed KLID to the current user's input methods so the
