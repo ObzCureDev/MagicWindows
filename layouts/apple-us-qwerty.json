@@ -1,8 +1,8 @@
 {
   "id": "apple-us-qwerty",
   "name": {
-    "en": "Apple US (QWERTY)",
-    "fr": "Apple Américain (QWERTY)"
+    "en": "US MagicKeyboard",
+    "fr": "US MagicKeyboard"
   },
   "locale": "en-US",
   "localeId": "00000409",
@@ -15,16 +15,16 @@
     {
       "eventCode": "KeyQ",
       "prompt": {
-        "en": "Press the Q key (top-left letter row)",
-        "fr": "Appuyez sur la touche Q (rangée supérieure, à gauche)"
+        "en": "Press the first key on the left in the top letter row",
+        "fr": "Appuyez sur la première touche à gauche de la rangée supérieure des lettres"
       },
       "expectedBase": "q"
     },
     {
       "eventCode": "KeyA",
       "prompt": {
-        "en": "Press the A key (home row, leftmost letter)",
-        "fr": "Appuyez sur la touche A (rangée du milieu, première lettre)"
+        "en": "Press the first key on the left in the middle letter row",
+        "fr": "Appuyez sur la première touche à gauche de la rangée du milieu"
       },
       "expectedBase": "a"
     },

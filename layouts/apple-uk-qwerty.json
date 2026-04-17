@@ -1,8 +1,8 @@
 {
   "id": "apple-uk-qwerty",
   "name": {
-    "en": "Apple British (QWERTY)",
-    "fr": "Apple Britannique (QWERTY)"
+    "en": "UK MagicKeyboard",
+    "fr": "UK MagicKeyboard"
   },
   "locale": "en-GB",
   "localeId": "00000809",

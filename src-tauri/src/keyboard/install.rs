@@ -136,7 +136,14 @@ Set-ItemProperty -LiteralPath $markerKey -Name 'LastInstalledLANGID'  -Value $la
 Set-ItemProperty -LiteralPath $markerKey -Name 'LastInstalledLANGTAG' -Value $langTag   -Force
 Write-Host "Markers written to $markerKey"
 
-# ── Copy DLL to system directories ────────────────────────────────────────
+# ── Copy DLL to System32 ───────────────────────────────────────────────────
+# Only the 64-bit DLL is copied to System32. We deliberately do NOT mirror it
+# to SysWOW64 because we currently only build for x86_64. SysWOW64 must hold a
+# 32-bit (i686) DLL — a 64-bit DLL there crashes any 32-bit process that loads
+# it (Explorer shell extensions, Office IMEs, etc) the moment the layout is
+# activated. Better to skip 32-bit support than to ship a guaranteed crash.
+# Also actively remove any stale 64-bit copy a previous bad install left in
+# SysWOW64.
 $dllFileName = "$DllName.dll"
 $sys32       = Join-Path $env:SystemRoot 'System32'
 $destSys32   = Join-Path $sys32 $dllFileName
@@ -145,9 +152,11 @@ Copy-Item -LiteralPath $DllPath -Destination $destSys32 -Force
 
 $wow64 = Join-Path $env:SystemRoot 'SysWOW64'
 if (Test-Path -LiteralPath $wow64) {{
-    $destWow64 = Join-Path $wow64 $dllFileName
-    Write-Host "Copying to $destWow64 ..."
-    Copy-Item -LiteralPath $DllPath -Destination $destWow64 -Force
+    $staleWow64 = Join-Path $wow64 $dllFileName
+    if (Test-Path -LiteralPath $staleWow64) {{
+        Write-Host "Removing stale 64-bit DLL from SysWOW64: $staleWow64"
+        Remove-Item -LiteralPath $staleWow64 -Force -ErrorAction SilentlyContinue
+    }}
 }}
 
 # ── Create registry entries ────────────────────────────────────────────────

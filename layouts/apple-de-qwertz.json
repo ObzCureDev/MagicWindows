@@ -1,8 +1,8 @@
 {
   "id": "apple-de-qwertz",
   "name": {
-    "en": "Apple German (QWERTZ)",
-    "fr": "Apple Allemand (QWERTZ)"
+    "en": "DE MagicKeyboard",
+    "fr": "DE MagicKeyboard"
   },
   "locale": "de-DE",
   "localeId": "00000407",
@@ -15,13 +15,13 @@
     {
       "eventCode": "KeyQ",
       "prompt": {
-        "en": "Press the Q key (top-left letter row)",
-        "fr": "Appuyez sur la touche Q (rangée supérieure, à gauche)"
+        "en": "Press the first key on the left in the top letter row",
+        "fr": "Appuyez sur la première touche à gauche de la rangée supérieure des lettres"
       },
       "expectedBase": "q"
     },
     {
-      "eventCode": "KeyZ",
+      "eventCode": "KeyY",
       "prompt": {
         "en": "Press the key between T and U on the top row",
         "fr": "Appuyez sur la touche entre T et U sur la rangée supérieure"
@@ -29,7 +29,7 @@
       "expectedBase": "z"
     },
     {
-      "eventCode": "KeyY",
+      "eventCode": "KeyZ",
       "prompt": {
         "en": "Press the key to the right of the left Shift (bottom-left area, second key)",
         "fr": "Appuyez sur la deuxième touche à droite du Shift gauche (en bas à gauche)"
@@ -40,7 +40,7 @@
       "eventCode": "BracketLeft",
       "prompt": {
         "en": "Press the key to the right of P",
-        "fr": "Appuyez sur la touche à droite du P"
+        "fr": "Appuyez sur la touche immédiatement à droite de P"
       },
       "expectedBase": "\u00fc"
     }

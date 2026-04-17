@@ -1,8 +1,8 @@
 {
   "id": "apple-es-qwerty",
   "name": {
-    "en": "Apple Spanish (QWERTY)",
-    "fr": "Apple Espagnol (QWERTY)"
+    "en": "ES MagicKeyboard",
+    "fr": "ES MagicKeyboard"
   },
   "locale": "es-ES",
   "localeId": "00000c0a",
@@ -15,16 +15,16 @@
     {
       "eventCode": "Semicolon",
       "prompt": {
-        "en": "Press the key with the \u00f1 character (right of L)",
-        "fr": "Appuyez sur la touche avec le caractère ñ (à droite de L)"
+        "en": "Press the key to the right of L",
+        "fr": "Appuyez sur la touche immédiatement à droite de L"
       },
       "expectedBase": "\u00f1"
     },
     {
       "eventCode": "Equal",
       "prompt": {
-        "en": "Press the key to the RIGHT of the 0 key, with \u00a1 and \u00bf",
-        "fr": "Appuyez sur la touche à DROITE du 0, avec ¡ et ¿"
+        "en": "Press the key to the right of the 0 (zero) key",
+        "fr": "Appuyez sur la touche à droite du 0 (zéro)"
       },
       "expectedBase": "\u00a1"
     },
@@ -39,8 +39,8 @@
     {
       "eventCode": "Backslash",
       "prompt": {
-        "en": "Press the key with \u00e7 (next to Enter)",
-        "fr": "Appuyez sur la touche avec ç (à côté de Entrée)"
+        "en": "Press the key to the left of the Enter (Return) key",
+        "fr": "Appuyez sur la touche à gauche de la touche Entrée"
       },
       "expectedBase": "\u00e7"
     }
