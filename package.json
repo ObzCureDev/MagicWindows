@@ -10,6 +10,7 @@
     "build": "vite build",
     "prebuild": "node scripts/build-detection-catalogue.mjs",
     "preview": "vite preview",
+    "precheck": "node scripts/build-detection-catalogue.mjs",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run",
     "test:watch": "vitest",
