@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { appState } from "../lib/stores";
+  import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
 
   let installing = $state(true);
@@ -41,7 +41,9 @@
   }
 
   function goDone() {
-    appState.page = "done";
+    // After install, drop the user into the test page so they can verify
+    // every key prints what its keycap shows. They can move on from there.
+    appState.page = "test";
   }
 
   function goBack() {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { appState } from "../lib/stores";
+  import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
   import type { LayoutMeta } from "../lib/types";
 

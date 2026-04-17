@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
+  import { invoke } from "@tauri-apps/api/core";
   import {
     pickBestQuestion,
     applyResponse,
@@ -9,7 +10,8 @@
     layoutsWithChar,
   } from "../lib/detection";
   import catalogueJson from "../lib/detection-catalogue.generated.json";
-  import type { DetectionCatalogue, DetectionCharEntry } from "../lib/types";
+  import type { DetectionCatalogue, DetectionCharEntry, Layout } from "../lib/types";
+  import KeyboardVisual from "../components/KeyboardVisual.svelte";
 
   const catalogue = catalogueJson as DetectionCatalogue;
   const MAX_QUESTIONS = 3;
@@ -27,6 +29,7 @@
   let wrongPresses = $state(0);
   let currentChar = $state<DetectionCharEntry | null>(null);
   let detectedId = $state<string | null>(null);
+  let detectedLayout = $state<Layout | null>(null);
   let failed = $state(false);
   let showWrongToast = $state(false);
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -67,9 +70,14 @@
     wrongPresses = 0;
   }
 
-  function finishSuccess(id: string) {
+  async function finishSuccess(id: string) {
     detectedId = id;
     appState.selectedLayoutId = id;
+    try {
+      detectedLayout = await invoke<Layout>("get_layout", { id });
+    } catch (e) {
+      console.error("Failed to load detected layout:", e);
+    }
   }
 
   function finishFailure() {
@@ -169,60 +177,20 @@
 
   <div class="page__content">
     {#if detectedId}
-      <div class="status status--success">
-        {t(appState.lang, "detect.detected", { name: detectedName(detectedId) })}
-      </div>
-      <div class="page__actions">
+      <div class="detect-success">
+        <div class="status status--success">
+          {t(appState.lang, "detect.detected", { name: detectedName(detectedId) })}
+        </div>
         <button class="btn btn-primary" onclick={goPreview}>
           {t(appState.lang, "detect.continue")}
         </button>
       </div>
 
-      <div class="mk-body mk-body--neutral" aria-hidden="true">
-        <div class="mk-row mk-row--fn">
-          <div class="mk-key mk-key--fn-esc"><span class="mk-lbl-sm">esc</span></div>
-          {#each Array(12) as _, i}
-            <div class="mk-key mk-key--fn"><span class="mk-lbl-fn">F{i + 1}</span></div>
-          {/each}
-          <div class="mk-touchid"></div>
+      {#if detectedLayout}
+        <div class="detect-kbd">
+          <KeyboardVisual layout={detectedLayout} activeLayer="base" />
         </div>
-        <div class="mk-row">
-          {#each Array(13) as _}<div class="mk-key"></div>{/each}
-          <div class="mk-key mk-key--delete"><span class="mk-lbl-sm">delete</span></div>
-        </div>
-        <div class="mk-row">
-          <div class="mk-key mk-key--tab"><span class="mk-lbl-sm">tab</span></div>
-          {#each Array(12) as _}<div class="mk-key"></div>{/each}
-          <div class="mk-key mk-key--enter-top"></div>
-        </div>
-        <div class="mk-row">
-          <div class="mk-key mk-key--caps"><span class="mk-lbl-sm">caps lock</span></div>
-          {#each Array(12) as _}<div class="mk-key"></div>{/each}
-          <div class="mk-key mk-key--enter-bot"><span class="mk-lbl-sm">return</span></div>
-        </div>
-        <div class="mk-row">
-          <div class="mk-key mk-key--lshift"><span class="mk-lbl-sm">shift</span></div>
-          {#each Array(11) as _}<div class="mk-key"></div>{/each}
-          <div class="mk-key mk-key--rshift"><span class="mk-lbl-sm">shift</span></div>
-        </div>
-        <div class="mk-row mk-row--bottom">
-          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">fn</span></div>
-          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">control</span></div>
-          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">option</span></div>
-          <div class="mk-key mk-key--cmd"><span class="mk-lbl-xs">command</span></div>
-          <div class="mk-key mk-key--space"></div>
-          <div class="mk-key mk-key--cmd"><span class="mk-lbl-xs">command</span></div>
-          <div class="mk-key mk-key--mod1"><span class="mk-lbl-xs">option</span></div>
-          <div class="mk-arrows">
-            <div class="mk-arrow mk-arrow--l"><span class="mk-arrow-glyph">◀</span></div>
-            <div class="mk-arrow-stack">
-              <div class="mk-arrow mk-arrow--h"><span class="mk-arrow-glyph">▲</span></div>
-              <div class="mk-arrow mk-arrow--h"><span class="mk-arrow-glyph">▼</span></div>
-            </div>
-            <div class="mk-arrow mk-arrow--l"><span class="mk-arrow-glyph">▶</span></div>
-          </div>
-        </div>
-      </div>
+      {/if}
     {:else if currentChar}
       <div
         class="progress-bar"
@@ -272,6 +240,25 @@
 </div>
 
 <style>
+  .detect-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .detect-kbd {
+    display: flex;
+    justify-content: center;
+    --u: 32px;
+    --gap: 4px;
+    --radius-key: 6px;
+  }
+  .detect-kbd :global(.kbd-body) {
+    --u: 32px;
+    --gap: 4px;
+    --radius-key: 6px;
+  }
   .detect-prompt {
     text-align: center;
     margin: 2rem auto;

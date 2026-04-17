@@ -63,6 +63,12 @@ export const translations: Record<string, Record<string, unknown>> = {
       openSettings: "Open Windows Settings",
       done: "Done",
     },
+    test: {
+      title: "Test your keyboard",
+      hint: "Type below and check that every key prints what's on its keycap.",
+      placeholder: "Try typing here…",
+      continue: "Looks good",
+    },
     done: {
       title: "All Done!",
       congratulations: "Your Apple Magic Keyboard layout is now installed and added to your input methods.",
@@ -180,6 +186,12 @@ export const translations: Record<string, Record<string, unknown>> = {
         "Des privilèges administrateur sont requis. Veuillez relancer l'application en tant qu'administrateur.",
       openSettings: "Ouvrir les paramètres Windows",
       done: "Terminé",
+    },
+    test: {
+      title: "Testez votre clavier",
+      hint: "Tapez ci-dessous et vérifiez que chaque touche affiche ce qui est imprimé dessus.",
+      placeholder: "Essayez de taper ici…",
+      continue: "Tout est bon",
     },
     done: {
       title: "Terminé !",

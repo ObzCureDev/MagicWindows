@@ -8,6 +8,7 @@
   import Select from "./pages/Select.svelte";
   import Preview from "./pages/Preview.svelte";
   import Install from "./pages/Install.svelte";
+  import Test from "./pages/Test.svelte";
   import Done from "./pages/Done.svelte";
   import About from "./pages/About.svelte";
   import Modifiers from "./pages/Modifiers.svelte";
@@ -105,6 +106,8 @@
   <Preview />
 {:else if appState.page === "install"}
   <Install />
+{:else if appState.page === "test"}
+  <Test />
 {:else if appState.page === "done"}
   <Done />
 {:else if appState.page === "about"}

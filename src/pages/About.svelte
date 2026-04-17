@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState } from "../lib/stores";
+  import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
   import { open } from "@tauri-apps/plugin-shell";
 
