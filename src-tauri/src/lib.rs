@@ -160,6 +160,9 @@ pub fn run() {
             generate_klc,
             install_layout,
             uninstall_layout,
+            crate::keyboard::modifiers::read_scancode_map,
+            crate::keyboard::modifiers::write_scancode_map,
+            crate::keyboard::modifiers::clear_scancode_map,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MagicWindows");
