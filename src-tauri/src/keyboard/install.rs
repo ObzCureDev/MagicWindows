@@ -298,7 +298,7 @@ Write-Host "[activate] done"
 "#
     );
 
-    fs::write(&ps_path, &script)
+    write_ps_with_bom(&ps_path, &script)
         .map_err(|e| format!("Failed to write activate script: {e}"))?;
 
     let output = Command::new("powershell")
@@ -399,6 +399,20 @@ Write-Host 'Keyboard layout uninstalled successfully.'
     Ok(())
 }
 
+/// Write a PowerShell script to disk with a UTF-8 BOM. Windows PowerShell 5.1
+/// reads `.ps1` files as ANSI/Windows-1252 by default unless a BOM is present —
+/// without one, any non-ASCII byte (em-dash, box-drawing chars, accented
+/// letters) gets misinterpreted, potentially corrupting string literals and
+/// triggering bogus parser errors. Writing the BOM forces UTF-8 detection.
+#[cfg(target_os = "windows")]
+fn write_ps_with_bom(path: &std::path::Path, contents: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut f = std::fs::File::create(path)?;
+    f.write_all(&[0xEF, 0xBB, 0xBF])?;
+    f.write_all(contents.as_bytes())?;
+    Ok(())
+}
+
 /// Write `ps_script` to a `.ps1` file and run it in an elevated PowerShell
 /// process.  Blocks until the elevated child exits, then returns the captured
 /// stdout on success or a descriptive error on failure.
@@ -446,7 +460,7 @@ exit $childExit
         body       = ps_script,
     );
 
-    fs::write(&ps_path, &wrapped)
+    write_ps_with_bom(&ps_path, &wrapped)
         .map_err(|e| format!("Failed to write {label} script: {e}"))?;
 
     // Pre-write a sentinel so we can distinguish "child never ran" from "child wrote 0".
