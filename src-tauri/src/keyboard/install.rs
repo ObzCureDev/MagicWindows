@@ -761,3 +761,85 @@ pub fn run_elevated_ps_for_modifiers(
 ) -> Result<String, String> {
     run_elevated_ps(work_dir, label, ps_script)
 }
+
+// ── Settings page: list every registered keyboard layout ────────────────────
+
+/// Enumerate every layout registered in `HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts`.
+/// Unprivileged read (HKLM is world-readable). Returns a flag per layout indicating
+/// whether it was installed by MagicWindows (DLL name starts with `kbdapl`) and
+/// whether it is currently referenced by the user's `HKCU\Keyboard Layout\Preload`.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn list_all_installed_layouts() -> Result<Vec<super::InstalledLayoutInfo>, String> {
+    use std::process::Command;
+
+    // PowerShell is the simplest way to iterate HKLM Keyboard Layouts without
+    // pulling in the `windows` crate. HKLM and HKCU are both user-readable so
+    // no elevation required.
+    let script = r#"
+$ErrorActionPreference = 'Stop'
+$root = 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts'
+$preload = 'HKCU:\Keyboard Layout\Preload'
+
+# Collect all KLIDs currently loaded for this user (for the isInUse flag).
+$inUse = @{}
+if (Test-Path -LiteralPath $preload) {
+    $names = (Get-Item -LiteralPath $preload).GetValueNames() | Where-Object { $_ -match '^\d+$' }
+    foreach ($name in $names) {
+        $val = (Get-ItemProperty -LiteralPath $preload -Name $name).$name
+        if ($val) { $inUse[$val.ToLower()] = $true }
+    }
+}
+
+# One line per layout: klid|layout_file|layout_text|isMagicWindows|isInUse
+Get-ChildItem -LiteralPath $root -ErrorAction SilentlyContinue | ForEach-Object {
+    $klid = $_.PSChildName
+    $props = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue
+    $file = if ($props.'Layout File') { $props.'Layout File' } else { '' }
+    $text = if ($props.'Layout Text') { $props.'Layout Text' } else { '' }
+    $isMw = $file.ToLower().StartsWith('kbdapl')
+    $iu   = $inUse.ContainsKey($klid.ToLower())
+    # Replace any literal pipes in text to keep the separator unambiguous on the Rust side.
+    $safeText = $text -replace '\|', '/'
+    "$klid|$file|$safeText|$isMw|$iu"
+}
+"#;
+
+    let output = Command::new("powershell")
+        .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
+        .output()
+        .map_err(|e| format!("Failed to invoke powershell: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "powershell list failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut out = Vec::new();
+    for line in stdout.lines() {
+        let line = line.trim();
+        if line.is_empty() { continue; }
+        let parts: Vec<&str> = line.splitn(5, '|').collect();
+        if parts.len() != 5 { continue; }
+        out.push(super::InstalledLayoutInfo {
+            klid: parts[0].to_string(),
+            layout_file: parts[1].to_string(),
+            layout_text: parts[2].to_string(),
+            is_magic_windows: parts[3].eq_ignore_ascii_case("True"),
+            is_in_use: parts[4].eq_ignore_ascii_case("True"),
+        });
+    }
+
+    // Deterministic ordering by KLID so the UI renders identically across runs.
+    out.sort_by(|a, b| a.klid.cmp(&b.klid));
+    Ok(out)
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn list_all_installed_layouts() -> Result<Vec<super::InstalledLayoutInfo>, String> {
+    Err("Listing layouts requires Windows.".to_string())
+}
