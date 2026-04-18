@@ -6,7 +6,7 @@
   import type { InstalledLayoutInfo } from "../lib/types";
   import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
 
-  let layouts = $state<InstalledLayoutInfo[]>([]);
+  let allLayouts = $state<InstalledLayoutInfo[]>([]);
   let loading = $state(true);
   let listError = $state<string | null>(null);
 
@@ -14,11 +14,15 @@
   let removeAttempt = $state(0);
   let lastRemoveTarget = $state<InstalledLayoutInfo | null>(null);
 
+  // Only show layouts the user actually uses (present in HKCU\Keyboard Layout\Preload)
+  // — the HKLM registry has hundreds of layouts Windows has ever seen, which is noise.
+  let activeLayouts = $derived(allLayouts.filter((l) => l.isInUse));
+
   async function loadLayouts() {
     loading = true;
     listError = null;
     try {
-      layouts = await invoke<InstalledLayoutInfo[]>("list_all_installed_layouts");
+      allLayouts = await invoke<InstalledLayoutInfo[]>("list_all_installed_layouts");
     } catch (err) {
       console.error("Failed to list layouts:", err);
       listError = String(err);
@@ -62,6 +66,11 @@
 </script>
 
 <div class="page">
+  <div class="settings-topbar">
+    <button class="btn btn-secondary btn-sm" onclick={goBack} aria-label={t(appState.lang, "common.back")}>
+      &larr; {t(appState.lang, "common.back")}
+    </button>
+  </div>
   <div class="page__header">
     <h1 class="page__title">{t(appState.lang, "settings.title")}</h1>
     <p class="page__subtitle">{t(appState.lang, "settings.subtitle")}</p>
@@ -81,11 +90,11 @@
       <p class="text-secondary">{t(appState.lang, "settings.loading")}</p>
     {:else if listError}
       <div class="status status--error">{listError}</div>
-    {:else if layouts.length === 0}
+    {:else if activeLayouts.length === 0}
       <p class="text-secondary text-center">{t(appState.lang, "settings.empty")}</p>
     {:else}
       <div class="layout-list">
-        {#each layouts as layout (layout.klid)}
+        {#each activeLayouts as layout (layout.klid)}
           <div class="layout-row">
             <div class="layout-row__main">
               <div class="layout-row__title">{layout.layoutText || layout.klid}</div>
@@ -132,6 +141,13 @@
 </div>
 
 <style>
+  .settings-topbar {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto 4px;
+    display: flex;
+    justify-content: flex-start;
+  }
   .layout-list {
     display: flex;
     flex-direction: column;

@@ -3,7 +3,7 @@
   import { t } from "../lib/i18n";
   import { open } from "@tauri-apps/plugin-shell";
 
-  const version = "0.1.0";
+  const version = "0.1.3";
 
   async function openGitHub() {
     try {
