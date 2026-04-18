@@ -124,3 +124,21 @@ impl Layout {
         Ok(())
     }
 }
+
+/// Metadata about a keyboard layout registered on the system (ours or OEM).
+///
+/// Read from `HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\{klid}`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledLayoutInfo {
+    /// 8-char registry subkey name, e.g. "0000040c" or "a001040c".
+    pub klid: String,
+    /// `Layout File` registry value, e.g. "KBDFR.DLL" or "kbdaplfr.dll".
+    pub layout_file: String,
+    /// `Layout Text` registry value; may be empty if the key is malformed.
+    pub layout_text: String,
+    /// True when `layout_file.to_lowercase().starts_with("kbdapl")`.
+    pub is_magic_windows: bool,
+    /// True when `klid` appears in `HKCU\Keyboard Layout\Preload`.
+    pub is_in_use: bool,
+}
