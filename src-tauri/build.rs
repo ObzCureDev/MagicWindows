@@ -447,6 +447,7 @@ fn generate_kbd_c_build(layout: &Layout) -> String {
     build_emit_vsc_to_vk(&mut out, layout);
     build_emit_e0_e1(&mut out);
     build_emit_wchar_tables(&mut out, &entries, has_altgr);
+    build_emit_control_key_tables(&mut out);
     build_emit_dead_keys(&mut out, layout, has_dead_keys);
     build_emit_key_names(&mut out);
     build_emit_key_names_ext(&mut out);
@@ -854,6 +855,41 @@ fn build_emit_wchar_tables(out: &mut String, entries: &[Entry], has_altgr: bool)
     push_ln(out, "");
 }
 
+/// Emit the VK_TO_WCHARS1 + VK_TO_WCHARS2 tables for control keys and numpad.
+/// Without these, ToUnicodeEx returns 0 for VK_RETURN / VK_BACK / VK_TAB which
+/// breaks Chromium-based apps (VSCode, Electron, Chrome) that call ToUnicodeEx
+/// directly instead of relying on TranslateMessage's hardcoded behavior.
+fn build_emit_control_key_tables(out: &mut String) {
+    push_ln(out, "static VK_TO_WCHARS1 aVkToWch1[] = {");
+    push_ln(out, "    { VK_NUMPAD0,  0x00, { L'0'    } },");
+    push_ln(out, "    { VK_NUMPAD1,  0x00, { L'1'    } },");
+    push_ln(out, "    { VK_NUMPAD2,  0x00, { L'2'    } },");
+    push_ln(out, "    { VK_NUMPAD3,  0x00, { L'3'    } },");
+    push_ln(out, "    { VK_NUMPAD4,  0x00, { L'4'    } },");
+    push_ln(out, "    { VK_NUMPAD5,  0x00, { L'5'    } },");
+    push_ln(out, "    { VK_NUMPAD6,  0x00, { L'6'    } },");
+    push_ln(out, "    { VK_NUMPAD7,  0x00, { L'7'    } },");
+    push_ln(out, "    { VK_NUMPAD8,  0x00, { L'8'    } },");
+    push_ln(out, "    { VK_NUMPAD9,  0x00, { L'9'    } },");
+    push_ln(out, "    { VK_TAB,      0x00, { 0x0009 } },");
+    push_ln(out, "    { VK_ADD,      0x00, { L'+'    } },");
+    push_ln(out, "    { VK_DIVIDE,   0x00, { L'/'    } },");
+    push_ln(out, "    { VK_MULTIPLY, 0x00, { L'*'    } },");
+    push_ln(out, "    { VK_SUBTRACT, 0x00, { L'-'    } },");
+    push_ln(out, "    { 0,           0x00, { 0      } }");
+    push_ln(out, "};");
+    push_ln(out, "");
+
+    push_ln(out, "static VK_TO_WCHARS2 aVkToWch2[] = {");
+    push_ln(out, "    { VK_BACK,    0x00, { 0x0008, 0x007F } },");
+    push_ln(out, "    { VK_ESCAPE,  0x00, { 0x001B, 0x001B } },");
+    push_ln(out, "    { VK_RETURN,  0x00, { 0x000D, 0x000A } },");
+    push_ln(out, "    { VK_CANCEL,  0x00, { 0x0003, 0x0003 } },");
+    push_ln(out, "    { 0,          0x00, { 0,      0      } }");
+    push_ln(out, "};");
+    push_ln(out, "");
+}
+
 fn build_emit_dead_keys(out: &mut String, layout: &Layout, has_dead_keys: bool) {
     if !has_dead_keys {
         push_ln(out, "static DEADKEY aDeadKey[] = { { 0, 0, 0 } };");
@@ -978,6 +1014,8 @@ fn build_emit_kbd_tables(out: &mut String, has_altgr: bool) {
     push_ln(out, &format!(
         "    {{ (PVK_TO_WCHARS1)aVkToWch{n}, {n}, sizeof(aVkToWch{n}[0]) }},"
     ));
+    push_ln(out, "    { (PVK_TO_WCHARS1)aVkToWch1, 1, sizeof(aVkToWch1[0]) },");
+    push_ln(out, "    { (PVK_TO_WCHARS1)aVkToWch2, 2, sizeof(aVkToWch2[0]) },");
     push_ln(out, "    { NULL, 0, 0 }");
     push_ln(out, "};");
     push_ln(out, "");

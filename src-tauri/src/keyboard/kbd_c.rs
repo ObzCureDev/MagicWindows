@@ -47,6 +47,7 @@ pub fn generate_kbd_c(layout: &Layout) -> String {
     emit_vsc_to_vk(&mut out, layout);
     emit_e0_e1_tables(&mut out);
     emit_vk_to_wchar_tables(&mut out, &entries, has_altgr);
+    emit_control_key_tables(&mut out);
     emit_dead_key_table(&mut out, layout, has_dead_keys);
     emit_key_names(&mut out);
     emit_key_names_ext(&mut out);
@@ -333,6 +334,46 @@ fn emit_wchar_table3(out: &mut String, entries: &[VkEntry]) {
     push(out, "");
 }
 
+/// Emit the fixed `VK_TO_WCHARS1` and `VK_TO_WCHARS2` tables covering the
+/// control-character keys (ENTER, BACKSPACE, TAB, ESCAPE, CANCEL) and the
+/// numeric keypad.
+///
+/// Without these tables, `ToUnicodeEx` returns 0 for those VKs and Chromium-
+/// based apps (VSCode, Chrome, Electron) fail to produce newlines or handle
+/// backspace correctly — classic Win32 apps are unaffected because
+/// `TranslateMessage` hard-codes `'\r'` for VK_RETURN on the Windows side and
+/// masks the gap. This mirrors what Microsoft's reference layouts do.
+fn emit_control_key_tables(out: &mut String) {
+    push(out, "static VK_TO_WCHARS1 aVkToWch1[] = {");
+    push(out, "    { VK_NUMPAD0,  0x00, { L'0'    } },");
+    push(out, "    { VK_NUMPAD1,  0x00, { L'1'    } },");
+    push(out, "    { VK_NUMPAD2,  0x00, { L'2'    } },");
+    push(out, "    { VK_NUMPAD3,  0x00, { L'3'    } },");
+    push(out, "    { VK_NUMPAD4,  0x00, { L'4'    } },");
+    push(out, "    { VK_NUMPAD5,  0x00, { L'5'    } },");
+    push(out, "    { VK_NUMPAD6,  0x00, { L'6'    } },");
+    push(out, "    { VK_NUMPAD7,  0x00, { L'7'    } },");
+    push(out, "    { VK_NUMPAD8,  0x00, { L'8'    } },");
+    push(out, "    { VK_NUMPAD9,  0x00, { L'9'    } },");
+    push(out, "    { VK_TAB,      0x00, { 0x0009 } },");
+    push(out, "    { VK_ADD,      0x00, { L'+'    } },");
+    push(out, "    { VK_DIVIDE,   0x00, { L'/'    } },");
+    push(out, "    { VK_MULTIPLY, 0x00, { L'*'    } },");
+    push(out, "    { VK_SUBTRACT, 0x00, { L'-'    } },");
+    push(out, "    { 0,           0x00, { 0      } }");
+    push(out, "};");
+    push(out, "");
+
+    push(out, "static VK_TO_WCHARS2 aVkToWch2[] = {");
+    push(out, "    { VK_BACK,    0x00, { 0x0008, 0x007F } },");
+    push(out, "    { VK_ESCAPE,  0x00, { 0x001B, 0x001B } },");
+    push(out, "    { VK_RETURN,  0x00, { 0x000D, 0x000A } },");
+    push(out, "    { VK_CANCEL,  0x00, { 0x0003, 0x0003 } },");
+    push(out, "    { 0,          0x00, { 0,      0      } }");
+    push(out, "};");
+    push(out, "");
+}
+
 /// Map the `cap` field to a C attribute constant.
 fn caps_attr(cap: &str) -> u8 {
     match cap.trim() {
@@ -504,6 +545,8 @@ fn emit_kbd_tables(out: &mut String, _layout: &Layout, has_altgr: bool, _has_dea
             "    {{ (PVK_TO_WCHARS1)aVkToWch{wchar_n}, {wchar_n}, sizeof(aVkToWch{wchar_n}[0]) }},"
         ),
     );
+    push(out, "    { (PVK_TO_WCHARS1)aVkToWch1, 1, sizeof(aVkToWch1[0]) },");
+    push(out, "    { (PVK_TO_WCHARS1)aVkToWch2, 2, sizeof(aVkToWch2[0]) },");
     push(out, "    { NULL, 0, 0 }");
     push(out, "};");
     push(out, "");
@@ -866,6 +909,14 @@ mod tests {
         assert!(c.contains("aVkToWch"), "{dll_name}: missing aVkToWch");
         assert!(c.contains("CharModifiers"), "{dll_name}: missing CharModifiers");
         assert!(c.contains("#include <kbd.h>"), "{dll_name}: missing kbd.h include");
+        // Control-key tables are required for Chromium/Electron compatibility:
+        // without VK_RETURN / VK_BACK / VK_TAB in a VK_TO_WCHARS table,
+        // ToUnicodeEx returns 0 and Chromium-based apps fail to handle these keys.
+        assert!(c.contains("aVkToWch1"), "{dll_name}: missing aVkToWch1 (control keys + numpad)");
+        assert!(c.contains("aVkToWch2"), "{dll_name}: missing aVkToWch2 (RETURN/BACK/ESC/CANCEL)");
+        assert!(c.contains("VK_RETURN"), "{dll_name}: VK_RETURN must be mapped");
+        assert!(c.contains("VK_BACK"), "{dll_name}: VK_BACK must be mapped");
+        assert!(c.contains("VK_TAB"), "{dll_name}: VK_TAB must be mapped");
     }
 
     #[test]
