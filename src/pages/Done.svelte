@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
-  import type { ModifierToggles } from "../lib/types";
+  import type { InstalledLayoutInfo, Layout, ModifierToggles } from "../lib/types";
   import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
 
   type ModPreset = "none" | "macShortcuts" | "winStrict";
@@ -14,6 +15,53 @@
   let modAttempt = $state(0);
   let uninstallError = $state<string | null>(null);
   let uninstallAttempt = $state(0);
+
+  // "Remove Windows default" offer for the same locale we just installed.
+  let windowsDefaultTarget = $state<InstalledLayoutInfo | null>(null);
+  let windowsDefaultRemoved = $state(false);
+  let removeWinError = $state<string | null>(null);
+  let removeWinAttempt = $state(0);
+
+  async function detectWindowsDefault() {
+    if (!appState.selectedLayoutId) return;
+    try {
+      // Get the localeId (8 hex chars, e.g. "0000040c") of the layout we just installed.
+      const installedLayout = await invoke<Layout>("get_layout", { id: appState.selectedLayoutId });
+      const localeHex = installedLayout.localeId.slice(-4).toLowerCase();
+
+      // Find the system default layout (klid starts with "0000") matching that locale.
+      const allLayouts = await invoke<InstalledLayoutInfo[]>("list_all_installed_layouts");
+      windowsDefaultTarget = allLayouts.find(
+        (l) => l.klid.startsWith("0000") && l.klid.slice(-4).toLowerCase() === localeHex,
+      ) ?? null;
+    } catch (err) {
+      console.error("detectWindowsDefault failed:", err);
+    }
+  }
+
+  async function removeWindowsDefault() {
+    if (!windowsDefaultTarget) return;
+    const msg = t(appState.lang, "settings.confirmRemove", {
+      name: windowsDefaultTarget.layoutText || windowsDefaultTarget.klid,
+    });
+    if (!window.confirm(msg)) return;
+    removeWinError = null;
+    try {
+      await invoke("uninstall_by_klid", { klid: windowsDefaultTarget.klid });
+      windowsDefaultRemoved = true;
+      windowsDefaultTarget = null;
+    } catch (err) {
+      console.error("Remove Windows default failed:", err);
+      removeWinError = String(err);
+      removeWinAttempt += 1;
+    }
+  }
+
+  async function retryRemoveWindowsDefault() {
+    await removeWindowsDefault();
+  }
+
+  onMount(detectWindowsDefault);
 
   // Preset → ModifierToggles mapping. Mac shortcuts swaps both sides of
   // Cmd ↔ Ctrl so Cmd+C/V/X behaves like macOS. Windows-strict keeps Ctrl
@@ -97,6 +145,34 @@
       {t(appState.lang, "done.instructions")}
     </p>
 
+    <!-- ── Optional: remove the Windows default layout for this locale ── -->
+    {#if windowsDefaultTarget}
+      <div class="win-default-offer">
+        <h2 class="win-default-offer__title">
+          <span>{t(appState.lang, "done.removeWindowsDefault", { locale: windowsDefaultTarget.layoutText })}</span>
+          <span
+            class="info-icon"
+            title={t(appState.lang, "settings.reactivateInfo")}
+            aria-label={t(appState.lang, "settings.reactivateInfo")}
+          >&#9432;</span>
+        </h2>
+        <button class="btn btn-secondary" onclick={removeWindowsDefault}>
+          {t(appState.lang, "done.removeWindowsDefaultBtn", { locale: windowsDefaultTarget.layoutText })}
+        </button>
+        <ElevatedErrorPanel
+          error={removeWinError}
+          onRetry={retryRemoveWindowsDefault}
+          operationName="uninstall_by_klid"
+          context={{ klid: windowsDefaultTarget.klid }}
+          attemptCount={removeWinAttempt}
+        />
+      </div>
+    {:else if windowsDefaultRemoved}
+      <div class="status status--success" style="max-width: 460px;">
+        {t(appState.lang, "done.windowsDefaultRemoved")}
+      </div>
+    {/if}
+
     <!-- ── Optional Mac-style modifier remap ─────────────────────────── -->
     <div class="mod-offer">
       <h2 class="mod-offer__title">{t(appState.lang, "done.modOfferTitle")}</h2>
@@ -165,6 +241,33 @@
 </div>
 
 <style>
+  .win-default-offer {
+    width: 100%;
+    max-width: 480px;
+    margin: 12px auto 4px;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    background: var(--color-bg-elevated, rgba(255,255,255,0.04));
+    border: 1px solid var(--color-border, rgba(0,0,0,0.15));
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .win-default-offer__title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.35;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .info-icon {
+    cursor: help;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+  }
   .mod-offer {
     width: 100%;
     max-width: 480px;
