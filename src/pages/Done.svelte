@@ -3,6 +3,7 @@
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
   import type { ModifierToggles } from "../lib/types";
+  import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
 
   type ModPreset = "none" | "macShortcuts" | "winStrict";
 
@@ -10,6 +11,9 @@
   let applying = $state(false);
   let applied = $state(false);
   let modError = $state<string | null>(null);
+  let modAttempt = $state(0);
+  let uninstallError = $state<string | null>(null);
+  let uninstallAttempt = $state(0);
 
   // Preset → ModifierToggles mapping. Mac shortcuts swaps both sides of
   // Cmd ↔ Ctrl so Cmd+C/V/X behaves like macOS. Windows-strict keeps Ctrl
@@ -37,6 +41,7 @@
     } catch (err) {
       console.error("write_scancode_map failed:", err);
       modError = String(err);
+      modAttempt += 1;
     } finally {
       applying = false;
     }
@@ -53,13 +58,15 @@
 
   async function uninstall() {
     if (!appState.selectedLayoutId) return;
+    uninstallError = null;
     try {
       await invoke("uninstall_layout", { id: appState.selectedLayoutId });
       appState.selectedLayoutId = null;
       appState.page = "welcome";
     } catch (err) {
       console.error("Uninstall failed:", err);
-      appState.error = String(err);
+      uninstallError = String(err);
+      uninstallAttempt += 1;
     }
   }
 
@@ -116,9 +123,13 @@
         </div>
       </label>
 
-      {#if modError}
-        <div class="status status--error">{modError}</div>
-      {/if}
+      <ElevatedErrorPanel
+        error={modError}
+        onRetry={applyPreset}
+        operationName="write_scancode_map"
+        context={{ preset: selectedPreset }}
+        attemptCount={modAttempt}
+      />
 
       {#if applied}
         <div class="status status--success">{t(appState.lang, "done.modApplied")}</div>
@@ -139,6 +150,13 @@
     </div>
 
     <div class="mt-4">
+      <ElevatedErrorPanel
+        error={uninstallError}
+        onRetry={uninstall}
+        operationName="uninstall_layout"
+        context={{ layoutId: appState.selectedLayoutId }}
+        attemptCount={uninstallAttempt}
+      />
       <button class="btn btn-danger" onclick={uninstall}>
         {t(appState.lang, "done.uninstall")}
       </button>
