@@ -12,6 +12,7 @@
   import Done from "./pages/Done.svelte";
   import About from "./pages/About.svelte";
   import Modifiers from "./pages/Modifiers.svelte";
+  import Settings from "./pages/Settings.svelte";
 
   function setLang(lang: "en" | "fr") {
     appState.lang = lang;
@@ -60,6 +61,14 @@
     {t(appState.lang, "appTitle")}
   </button>
   <div class="top-bar__controls">
+    <button
+      class="theme-toggle"
+      onclick={() => (appState.page = "settings")}
+      title={t(appState.lang, "settings.topbarTitle")}
+      aria-label={t(appState.lang, "settings.topbarTitle")}
+    >
+      &#9881;
+    </button>
     <button
       class="theme-toggle"
       onclick={() => (appState.page = "modifiers")}
@@ -114,4 +123,6 @@
   <About />
 {:else if appState.page === "modifiers"}
   <Modifiers />
+{:else if appState.page === "settings"}
+  <Settings />
 {/if}
