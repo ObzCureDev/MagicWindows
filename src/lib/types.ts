@@ -43,7 +43,7 @@ export interface DetectionResult {
   receivedChar: string;
 }
 
-export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "test" | "done" | "about" | "modifiers";
+export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "test" | "done" | "about" | "modifiers" | "settings";
 export type Lang = "en" | "fr";
 export type Theme = "light" | "dark" | "system";
 
@@ -99,4 +99,20 @@ export interface ModifierState {
   hasExternalMappings: boolean;
   /** All raw pairs found in the registry (for the warning details). */
   rawEntries: RawScancodePair[];
+}
+
+// ── Settings page: system layout management
+// (see docs/superpowers/specs/2026-04-19-settings-error-flow-design.md)
+
+export interface InstalledLayoutInfo {
+  /** 8-char registry subkey name, e.g. "0000040c". */
+  klid: string;
+  /** `Layout File` registry value, e.g. "KBDFR.DLL" or "kbdaplfr.dll". */
+  layoutFile: string;
+  /** `Layout Text` registry value; may be empty. */
+  layoutText: string;
+  /** True when this layout was installed by MagicWindows (layoutFile starts with "kbdapl"). */
+  isMagicWindows: boolean;
+  /** True when this KLID appears in HKCU\Keyboard Layout\Preload. */
+  isInUse: boolean;
 }
