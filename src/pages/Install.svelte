@@ -3,33 +3,33 @@
   import { invoke } from "@tauri-apps/api/core";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
+  import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
 
   let installing = $state(true);
   let success = $state(false);
   let error = $state<string | null>(null);
+  let attemptCount = $state(0);
 
-  onMount(async () => {
+  async function runInstall() {
     if (!appState.selectedLayoutId) {
       appState.page = "select";
       return;
     }
+    installing = true;
+    appState.installing = true;
+    error = null;
     try {
-      appState.installing = true;
       await invoke("install_layout", { id: appState.selectedLayoutId });
       success = true;
     } catch (err) {
       console.error("Installation failed:", err);
-      const msg = String(err);
-      if (msg.toLowerCase().includes("admin") || msg.toLowerCase().includes("privilege") || msg.toLowerCase().includes("access denied")) {
-        error = t(appState.lang, "install.adminRequired");
-      } else {
-        error = t(appState.lang, "install.error", { message: msg });
-      }
+      error = String(err);
+      attemptCount += 1;
     } finally {
       installing = false;
       appState.installing = false;
     }
-  });
+  }
 
   async function openSettings() {
     try {
@@ -41,14 +41,14 @@
   }
 
   function goDone() {
-    // After install, drop the user into the test page so they can verify
-    // every key prints what its keycap shows. They can move on from there.
     appState.page = "test";
   }
 
   function goBack() {
     appState.page = "preview";
   }
+
+  onMount(runInstall);
 </script>
 
 <div class="page">
@@ -78,7 +78,13 @@
         </button>
       </div>
     {:else if error}
-      <div class="status status--error">{error}</div>
+      <ElevatedErrorPanel
+        {error}
+        onRetry={runInstall}
+        operationName="install_layout"
+        context={{ layoutId: appState.selectedLayoutId }}
+        {attemptCount}
+      />
 
       <div class="page__actions">
         <button class="btn btn-secondary" onclick={goBack}>
