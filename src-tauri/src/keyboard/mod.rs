@@ -1,4 +1,5 @@
 pub mod detect;
+pub mod diagnostics;
 pub mod install;
 #[allow(dead_code)]
 pub mod kbd_c;
