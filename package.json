@@ -14,13 +14,15 @@
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:portable": "npm run tauri build && node scripts/build-portable.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tauri-apps/cli": "^2.10.1",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^24.12.2",
+    "archiver": "^7.0.1",
     "svelte": "^5.55.1",
     "svelte-check": "^4.4.6",
     "typescript": "~6.0.2",
