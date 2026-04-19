@@ -1,25 +1,74 @@
-/// Generate a Windows keyboard layout DLL C source file from a [`Layout`]
-/// definition.
-///
-/// The generated C source targets the Windows DDK keyboard layout API
-/// (`kbd.h`).  It defines all tables required by `KBDTABLES` and exports
-/// `KbdLayerDescriptor()`.  The file is self-contained: it includes
-/// `<windows.h>` and `<kbd.h>` from the Windows SDK.
-///
-/// # Shift-state model
-///
-/// Our layouts use five columns that map directly to the KLC/DDK shift states:
-///
-/// | Column   | Shift state index | Keys held   |
-/// |----------|-------------------|-------------|
-/// | base     | 0                 | (none)      |
-/// | shift    | 1                 | Shift       |
-/// | ctrl     | 2                 | Ctrl        |
-/// | altgr    | 3                 | Ctrl+Alt    |
-/// | altgrShift | 4              | Shift+Ctrl+Alt |
-///
-/// This matches the KLC SHIFTSTATE sequence `0 1 2 6 7`.
-use super::Layout;
+//! Windows keyboard layout DLL (C source) generator.
+//!
+//! Takes a [`Layout`] parsed from a MagicWindows layout JSON file and emits a
+//! self-contained C source file that, when compiled with `cl.exe /LD /NOENTRY`
+//! and linked against `user32.lib`, produces a working keyboard layout DLL
+//! exposing `KbdLayerDescriptor()`.
+//!
+//! # Shift-state model
+//!
+//! Our layouts use five columns that map directly to the KLC/DDK shift states:
+//!
+//! | Column     | Shift state index | Keys held      |
+//! |------------|-------------------|----------------|
+//! | base       | 0                 | (none)         |
+//! | shift      | 1                 | Shift          |
+//! | ctrl       | 2                 | Ctrl           |
+//! | altgr      | 3                 | Ctrl+Alt       |
+//! | altgrShift | 4                 | Shift+Ctrl+Alt |
+//!
+//! This matches the KLC SHIFTSTATE sequence `0 1 2 6 7`.
+//!
+//! This crate is consumed both by `src-tauri/build.rs` (to produce the shipped
+//! DLLs) and by the tests here — a single source of truth for the codegen.
+
+use serde::Deserialize;
+use std::collections::HashMap;
+
+// ── Input types (minimal projection of the full layout JSON) ────────────────
+//
+// We deliberately define our own Layout type here rather than depend on the
+// main crate's richer `Layout`: build scripts cannot import from the crate
+// they build, and codegen only needs a small subset of the fields. Unknown
+// JSON fields are silently ignored by serde (no `deny_unknown_fields`), so
+// a full MagicWindows layout JSON deserializes cleanly into this struct.
+
+/// One key mapping row (hex-codepoint strings or "-1").
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyMapping {
+    pub vk: String,
+    pub cap: String,
+    pub base: String,
+    pub shift: String,
+    #[serde(default)]
+    pub ctrl: String,
+    #[serde(default)]
+    pub altgr: String,
+    #[serde(default, rename = "altgrShift")]
+    pub altgr_shift: String,
+}
+
+/// A dead-key definition (base char -> composed result).
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeadKey {
+    pub name: String,
+    pub combinations: HashMap<String, String>,
+}
+
+/// Layout projection required by the codegen. Rich fields (description,
+/// detection keys, locale_id...) are deserialized-but-ignored.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Layout {
+    pub id: String,
+    pub name: HashMap<String, String>,
+    pub locale: String,
+    pub dll_name: String,
+    pub keys: HashMap<String, KeyMapping>,
+    #[serde(default)]
+    pub dead_keys: HashMap<String, DeadKey>,
+}
 
 // ── Public entry point ──────────────────────────────────────────────────────
 
@@ -28,19 +77,11 @@ use super::Layout;
 /// The returned string is valid C source that, when compiled with
 /// `cl.exe /LD /NOENTRY` and linked against `user32.lib`, produces a
 /// working keyboard layout DLL.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// // Layout is normally parsed from JSON; call generate_kbd_c with a parsed Layout.
-/// // let c_source = generate_kbd_c(&layout);
-/// ```
 pub fn generate_kbd_c(layout: &Layout) -> String {
     let mut out = String::with_capacity(32 * 1024);
     let has_altgr = layout_has_altgr(layout);
     let has_dead_keys = !layout.dead_keys.is_empty();
 
-    // Gather all VK→char entries once so we can inspect them.
     let entries = collect_vk_entries(layout);
 
     emit_header(&mut out, layout);
@@ -53,7 +94,7 @@ pub fn generate_kbd_c(layout: &Layout) -> String {
     emit_key_names_ext(&mut out);
     emit_dead_key_names(&mut out, layout, has_dead_keys);
     emit_modifiers(&mut out, has_altgr);
-    emit_kbd_tables(&mut out, layout, has_altgr, has_dead_keys);
+    emit_kbd_tables(&mut out, has_altgr);
     emit_export(&mut out);
 
     out
@@ -61,7 +102,6 @@ pub fn generate_kbd_c(layout: &Layout) -> String {
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 
-/// One parsed key row from the layout JSON.
 #[derive(Debug)]
 struct VkEntry {
     vk: String,
@@ -74,7 +114,6 @@ struct VkEntry {
     altgr_shift: CharVal,
 }
 
-/// A single character value in a key mapping.
 #[derive(Debug, Clone)]
 enum CharVal {
     /// No character (`-1` in JSON).
@@ -86,7 +125,6 @@ enum CharVal {
 }
 
 impl CharVal {
-    /// Parse from the JSON string representation.
     fn parse(s: &str) -> Self {
         let s = s.trim();
         if s == "-1" || s.is_empty() {
@@ -105,7 +143,6 @@ impl CharVal {
         }
     }
 
-    /// Return the C expression for this value in a `wch[]` initializer.
     fn c_wch(&self) -> String {
         match self {
             CharVal::None => "WCH_NONE".to_string(),
@@ -113,12 +150,10 @@ impl CharVal {
         }
     }
 
-    /// True when this value causes a dead-key entry row to follow.
     fn is_dead(&self) -> bool {
         matches!(self, CharVal::Dead(_))
     }
 
-    /// True when no character is generated.
     fn is_none(&self) -> bool {
         matches!(self, CharVal::None)
     }
@@ -145,7 +180,6 @@ fn collect_vk_entries(layout: &Layout) -> Vec<VkEntry> {
         .collect()
 }
 
-/// True if any key in the layout has an AltGr (Ctrl+Alt) character.
 fn layout_has_altgr(layout: &Layout) -> bool {
     layout.keys.values().any(|km| {
         let ag = CharVal::parse(&km.altgr);
@@ -166,7 +200,7 @@ fn emit_header(out: &mut String, layout: &Layout) {
     push(out, "/*");
     push(out, &format!(" * Keyboard layout: {name}"));
     push(out, &format!(" * Locale:          {}", layout.locale));
-    push(out, " * Generated by MagicWindows build script.  DO NOT EDIT.");
+    push(out, " * Generated by MagicWindows klc-codegen.  DO NOT EDIT.");
     push(out, " */");
     push(out, "");
     push(out, "#define KBD_TYPE 4");
@@ -187,21 +221,14 @@ fn emit_header(out: &mut String, layout: &Layout) {
 }
 
 /// Emit the `ausVK[]` table: scancode -> Virtual Key.
-///
-/// The table must be indexed 0..=bMaxVSCtoVK-1 (i.e. the *byte* scancode).
-/// We cover scancodes 0x00–0x7F with a standard set derived from a US-type
-/// keyboard plus the overrides from the layout JSON.
 fn emit_vsc_to_vk(out: &mut String, layout: &Layout) {
-    // Start from a standard US base table (0x00–0x7F).
     let mut table: Vec<String> = BASE_VSC_TABLE.iter().map(|s| s.to_string()).collect();
 
-    // Override with layout-specific VK names.
     for (sc_str, km) in &layout.keys {
         let sc = match u32::from_str_radix(sc_str, 16) {
             Ok(v) if (v as usize) < table.len() => v as usize,
             _ => continue,
         };
-        // Map the JSON VK string to a C constant.
         table[sc] = vk_name_to_c(&km.vk);
     }
 
@@ -213,10 +240,6 @@ fn emit_vsc_to_vk(out: &mut String, layout: &Layout) {
     push(out, "");
 }
 
-/// Emit the extended scancode tables (E0 and E1 prefix).
-///
-/// We use the standard values for a 101/104-key US keyboard. These are
-/// the same across all non-FE layouts.
 fn emit_e0_e1_tables(out: &mut String) {
     push(out, "static VSC_VK aE0VscToVk[] = {");
     for &(vsc, vk) in E0_TABLE {
@@ -232,12 +255,6 @@ fn emit_e0_e1_tables(out: &mut String) {
     push(out, "");
 }
 
-/// Emit all `VK_TO_WCHARS<N>` tables grouped by the number of shift states.
-///
-/// Windows groups keys with identical numbers of *used* shift states together
-/// in a single `VK_TO_WCHARS<N>` table.  However, MSKLC always uses a single
-/// flat table (`VK_TO_WCHARS5`) for layouts with AltGr, or `VK_TO_WCHARS3`
-/// for those without.  We follow that simpler strategy.
 fn emit_vk_to_wchar_tables(out: &mut String, entries: &[VkEntry], has_altgr: bool) {
     if has_altgr {
         emit_wchar_table5(out, entries);
@@ -272,7 +289,6 @@ fn emit_wchar_table5(out: &mut String, entries: &[VkEntry]) {
             ),
         );
 
-        // If any shift state is a dead key, emit the continuation row.
         if any_dead {
             let d = |cv: &CharVal| -> &'static str {
                 if cv.is_dead() { "WCH_DEAD" } else { "WCH_NONE" }
@@ -374,7 +390,6 @@ fn emit_control_key_tables(out: &mut String) {
     push(out, "");
 }
 
-/// Map the `cap` field to a C attribute constant.
 fn caps_attr(cap: &str) -> u8 {
     match cap.trim() {
         "1" => 0x01, // CAPLOK
@@ -392,7 +407,6 @@ fn emit_dead_key_table(out: &mut String, layout: &Layout, has_dead_keys: bool) {
 
     push(out, "static DEADKEY aDeadKey[] = {");
 
-    // Sort dead keys for reproducible output.
     let mut dk_codes: Vec<&String> = layout.dead_keys.keys().collect();
     dk_codes.sort();
 
@@ -400,16 +414,12 @@ fn emit_dead_key_table(out: &mut String, layout: &Layout, has_dead_keys: bool) {
         let dk = &layout.dead_keys[*dk_code];
         let accent_cp = u32::from_str_radix(dk_code, 16).unwrap_or(0);
 
-        // Sort combinations for reproducible output.
         let mut combos: Vec<(&String, &String)> = dk.combinations.iter().collect();
         combos.sort_by_key(|(k, _)| *k);
 
         for (base_str, result_str) in &combos {
             let base_cp = u32::from_str_radix(base_str, 16).unwrap_or(0);
             let result_cp = u32::from_str_radix(result_str, 16).unwrap_or(0);
-            // DEADTRANS macro: DEADTRANS(base_char, accent_char, composed_char, flags)
-            // dwBoth = MAKELONG(base, accent), wchComposed = result, uFlags
-            // flags: DKF_DEAD=1 if the result is itself a dead key, else 0
             push(
                 out,
                 &format!(
@@ -451,7 +461,6 @@ fn emit_dead_key_names(out: &mut String, layout: &Layout, has_dead_keys: bool) {
         dk_codes.sort();
         for dk_code in &dk_codes {
             let dk = &layout.dead_keys[*dk_code];
-            // Each dead key name is a wide string pointer.
             push(out, &format!("    L\"{}\",", dk.name));
         }
     }
@@ -460,17 +469,6 @@ fn emit_dead_key_names(out: &mut String, layout: &Layout, has_dead_keys: bool) {
     push(out, "");
 }
 
-/// Emit the `MODIFIERS` structure (shift-state mapping).
-///
-/// The table maps all combinations of Shift/Ctrl/Alt bit flags to a
-/// modification number (or `SHFT_INVALID` for unused combos).
-///
-/// Our shift states:
-///   - 0 = base
-///   - 1 = Shift
-///   - 2 = Ctrl
-///   - 3 = AltGr (Ctrl+Alt)
-///   - 4 = Shift+AltGr (Shift+Ctrl+Alt)
 fn emit_modifiers(out: &mut String, has_altgr: bool) {
     push(out, "static VK_TO_BIT aVkToBits[] = {");
     push(out, "    { VK_SHIFT,   KBDSHIFT },");
@@ -480,19 +478,6 @@ fn emit_modifiers(out: &mut String, has_altgr: bool) {
     push(out, "};");
     push(out, "");
 
-    // The bit space is 3 bits (Shift=bit0, Ctrl=bit1, Alt=bit2) => 8 entries (0..7).
-    // Mapping:
-    //   000 = 0 (base)
-    //   001 = 1 (Shift)
-    //   010 = SHFT_INVALID (Ctrl alone – no characters)
-    //   011 = SHFT_INVALID (Shift+Ctrl – no characters; control codes handled separately)
-    //   100 = SHFT_INVALID (Alt alone)
-    //   101 = SHFT_INVALID (Shift+Alt)
-    //   110 = 2 or 3 (Ctrl+Alt = AltGr)
-    //   111 = SHFT_INVALID or 4 (Shift+Ctrl+Alt = Shift+AltGr)
-    //
-    // If the layout has no AltGr layer, Ctrl+Alt also maps to SHFT_INVALID.
-    // We always include a Ctrl modification (index 2) for control characters.
     if has_altgr {
         push(out, "static MODIFIERS CharModifiers = {");
         push(out, "    &aVkToBits[0],");
@@ -529,7 +514,7 @@ fn emit_modifiers(out: &mut String, has_altgr: bool) {
     push(out, "");
 }
 
-fn emit_kbd_tables(out: &mut String, _layout: &Layout, has_altgr: bool, _has_dead_keys: bool) {
+fn emit_kbd_tables(out: &mut String, has_altgr: bool) {
     let locale_flags = if has_altgr {
         "(MAKELONG(KLLF_ALTGR, KBD_VERSION))"
     } else {
@@ -551,7 +536,6 @@ fn emit_kbd_tables(out: &mut String, _layout: &Layout, has_altgr: bool, _has_dea
     push(out, "};");
     push(out, "");
 
-    // Use explicit casts to silence KBD_LONG_POINTER type warnings on x64.
     push(out, "static KBDTABLES KbdTables = {");
     push(out, "    &CharModifiers,");
     push(out, "    aVkToWcharTable,");
@@ -581,16 +565,12 @@ fn emit_export(out: &mut String) {
     push(out, "");
 }
 
-/// Map a JSON VK name like `"VK_A"` to a C expression suitable for use in a
-/// `USHORT` initializer.
-///
-/// Alphanumeric VK codes (`VK_0`–`VK_9`, `VK_A`–`VK_Z`) are NOT defined in
-/// `winuser.h`; they equal the ASCII code of the character.  We emit raw hex
-/// literals for these to avoid conflicts with the `VK_F` struct typedef in
-/// `kbd.h`.  OEM and special keys use the winuser.h symbolic names.
+/// Map a JSON VK name to a C expression. Alphanumeric VKs use raw hex
+/// literals because those constants are not defined in winuser.h (they equal
+/// the ASCII code); using the symbolic names would conflict with the VK_F
+/// struct typedef in kbd.h.
 fn vk_name_to_c(vk: &str) -> String {
     match vk {
-        // Digits: VK_0=0x30 .. VK_9=0x39
         "VK_0" => "0x30".into(),
         "VK_1" => "0x31".into(),
         "VK_2" => "0x32".into(),
@@ -601,7 +581,6 @@ fn vk_name_to_c(vk: &str) -> String {
         "VK_7" => "0x37".into(),
         "VK_8" => "0x38".into(),
         "VK_9" => "0x39".into(),
-        // Letters: VK_A=0x41 .. VK_Z=0x5A
         "VK_A" => "0x41".into(),
         "VK_B" => "0x42".into(),
         "VK_C" => "0x43".into(),
@@ -628,7 +607,6 @@ fn vk_name_to_c(vk: &str) -> String {
         "VK_X" => "0x58".into(),
         "VK_Y" => "0x59".into(),
         "VK_Z" => "0x5A".into(),
-        // Special keys defined in winuser.h
         "VK_SPACE"      => "VK_SPACE".into(),
         "VK_OEM_1"      => "VK_OEM_1".into(),
         "VK_OEM_2"      => "VK_OEM_2".into(),
@@ -651,11 +629,6 @@ fn vk_name_to_c(vk: &str) -> String {
 
 /// Standard VSC→VK table for a 101/104-key US-type keyboard, indexed by
 /// scancode byte 0x00–0x7F.
-///
-/// Alphanumeric keys (VK_A–VK_Z, VK_0–VK_9) use raw hex literals because
-/// those constants are NOT defined in winuser.h; they equal ASCII codes.
-/// Using the symbolic names would conflict with the `VK_F` struct typedef
-/// in `kbd.h`.
 static BASE_VSC_TABLE: &[&str] = &[
     /* 00 */ "0",
     /* 01 */ "VK_ESCAPE",
@@ -787,7 +760,6 @@ static BASE_VSC_TABLE: &[&str] = &[
     /* 7F */ "0",
 ];
 
-/// Standard E0-prefixed scancode to VK mappings.
 static E0_TABLE: &[(u8, &str)] = &[
     (0x10, "VK_MEDIA_PREV_TRACK"),
     (0x19, "VK_MEDIA_NEXT_TRACK"),
@@ -828,7 +800,6 @@ static E0_TABLE: &[(u8, &str)] = &[
     (0x6D, "VK_LAUNCH_MEDIA_SELECT"),
 ];
 
-/// Key names for `GetKeyNameText()`.
 static KEY_NAMES: &[(u8, &str)] = &[
     (0x01, "Esc"),
     (0x0e, "Backspace"),
@@ -870,7 +841,6 @@ static KEY_NAMES: &[(u8, &str)] = &[
     (0x58, "F12"),
 ];
 
-/// Extended key names for `GetKeyNameText()`.
 static KEY_NAMES_EXT: &[(u8, &str)] = &[
     (0x1c, "Num Enter"),
     (0x1d, "Right Ctrl"),
@@ -896,7 +866,6 @@ static KEY_NAMES_EXT: &[(u8, &str)] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keyboard::Layout;
 
     fn parse_layout(json: &str) -> Layout {
         serde_json::from_str(json).expect("parse layout JSON")
@@ -925,10 +894,8 @@ mod tests {
         let layout = parse_layout(json);
         let c = generate_kbd_c(&layout);
         check_c_source(&c, "kbdaplus");
-        // US has AltGr layer
         assert!(c.contains("aVkToWch5"), "kbdaplus: expected 5-column table");
         assert!(c.contains("KLLF_ALTGR"), "kbdaplus: expected KLLF_ALTGR flag");
-        // Dead keys present
         assert!(c.contains("aDeadKey"), "kbdaplus: expected dead key table");
         assert!(c.contains("DEADTRANS"), "kbdaplus: expected DEADTRANS entries");
     }
@@ -976,11 +943,9 @@ mod tests {
 
     #[test]
     fn dead_key_table_empty_when_no_dead_keys() {
-        // Patch the US layout to remove dead keys
         let mut json_val: serde_json::Value =
             serde_json::from_str(include_str!("../../../layouts/apple-us-qwerty.json")).unwrap();
         json_val["deadKeys"] = serde_json::json!({});
-        // Also strip the @ markers from the base/altgr values
         for key_obj in json_val["keys"].as_object_mut().unwrap().values_mut() {
             for field in &["base", "shift", "altgr", "altgrShift"] {
                 if let Some(v) = key_obj.get(*field).and_then(|v| v.as_str()) {
