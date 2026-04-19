@@ -28,8 +28,11 @@ fn dirs_next_or_temp() -> PathBuf {
 // ── Windows implementation ──────────────────────────────────────────────────
 
 #[cfg(target_os = "windows")]
-pub fn install_layout(layout: &Layout, app: &tauri::AppHandle) -> Result<(), String> {
+pub fn install_layout(layout: &Layout, app: &tauri::AppHandle) -> Result<u64, String> {
     use std::fs;
+    use std::time::Instant;
+
+    let started = Instant::now();
 
     // ── 1. Locate the bundled pre-compiled DLL ──────────────────────────────
     let dll_src = resolve_bundled_dll(layout, app)?;
@@ -196,7 +199,9 @@ Write-Host 'Keyboard layout installed successfully.'
             log::warn!("Could not read install markers from HKLM: {e}; skipping auto-activation");
         }
     }
-    Ok(())
+    let elapsed_ms = started.elapsed().as_millis() as u64;
+    log::info!("Layout {} install completed in {elapsed_ms} ms", layout.id);
+    Ok(elapsed_ms)
 }
 
 /// Read the KLID, language tag, and list of stale KLIDs (purged by the install
@@ -857,7 +862,7 @@ exit $proc.ExitCode
 // ── Non-Windows stubs ───────────────────────────────────────────────────────
 
 #[cfg(not(target_os = "windows"))]
-pub fn install_layout(_layout: &Layout, _app: &tauri::AppHandle) -> Result<(), String> {
+pub fn install_layout(_layout: &Layout, _app: &tauri::AppHandle) -> Result<u64, String> {
     Err("Installation requires Windows.".to_string())
 }
 

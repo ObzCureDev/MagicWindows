@@ -19,7 +19,10 @@
     appState.installing = true;
     error = null;
     try {
-      await invoke("install_layout", { id: appState.selectedLayoutId });
+      const elapsedMs = await invoke<number>("install_layout", {
+        id: appState.selectedLayoutId,
+      });
+      appState.lastInstallMs = elapsedMs;
       success = true;
     } catch (err) {
       console.error("Installation failed:", err);
@@ -64,6 +67,14 @@
       <div class="status status--success">
         {t(appState.lang, "install.success")}
       </div>
+
+      {#if appState.lastInstallMs !== null}
+        <p class="text-secondary text-center" style="margin-top: -8px;">
+          {t(appState.lang, "install.elapsed", {
+            seconds: (appState.lastInstallMs / 1000).toFixed(1),
+          })}
+        </p>
+      {/if}
 
       <p class="text-secondary text-center" style="max-width: 420px;">
         {t(appState.lang, "done.instructions")}

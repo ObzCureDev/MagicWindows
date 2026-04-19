@@ -130,8 +130,11 @@ fn generate_klc(app: tauri::AppHandle, id: String) -> Result<String, String> {
 }
 
 /// Install a keyboard layout on the system using the bundled pre-compiled DLL.
+///
+/// Returns the install duration in milliseconds so the UI can surface it
+/// ("Installed in 2.3s") — useful signal for users on slow/AV-contended machines.
 #[tauri::command]
-fn install_layout(app: tauri::AppHandle, id: String) -> Result<(), String> {
+fn install_layout(app: tauri::AppHandle, id: String) -> Result<u64, String> {
     let layout = load_layout(&app, &id)?;
     keyboard::install::install_layout(&layout, &app)
 }

@@ -15,6 +15,7 @@ class AppState {
   theme = $state<Theme>("system");
   error = $state<string | null>(null);
   installing = $state(false);
+  lastInstallMs = $state<number | null>(null);
   detectionFailedMessage = $state<string | null>(null);
 }
 

@@ -57,6 +57,7 @@ export const translations: Record<string, Record<string, unknown>> = {
       title: "Installation",
       installing: "Installing layout...",
       success: "Layout installed successfully!",
+      elapsed: "Installed in {seconds}s",
       error: "Installation failed: {message}",
       adminRequired:
         "Administrator privileges are required. Please restart the app as administrator.",
@@ -229,6 +230,7 @@ export const translations: Record<string, Record<string, unknown>> = {
       title: "Installation",
       installing: "Installation en cours…",
       success: "Disposition installée avec succès !",
+      elapsed: "Installée en {seconds}s",
       error: "Échec de l'installation : {message}",
       adminRequired:
         "Des privilèges administrateur sont requis. Veuillez relancer l'application en tant qu'administrateur.",
