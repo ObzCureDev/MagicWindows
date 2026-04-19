@@ -16,7 +16,6 @@
   let uninstallError = $state<string | null>(null);
   let uninstallAttempt = $state(0);
 
-  // "Remove Windows default" offer for the same locale we just installed.
   let windowsDefaultTarget = $state<InstalledLayoutInfo | null>(null);
   let windowsDefaultRemoved = $state(false);
   let removeWinError = $state<string | null>(null);
@@ -25,11 +24,8 @@
   async function detectWindowsDefault() {
     if (!appState.selectedLayoutId) return;
     try {
-      // Get the localeId (8 hex chars, e.g. "0000040c") of the layout we just installed.
       const installedLayout = await invoke<Layout>("get_layout", { id: appState.selectedLayoutId });
       const localeHex = installedLayout.localeId.slice(-4).toLowerCase();
-
-      // Find the system default layout (klid starts with "0000") matching that locale.
       const allLayouts = await invoke<InstalledLayoutInfo[]>("list_all_installed_layouts");
       windowsDefaultTarget = allLayouts.find(
         (l) => l.klid.startsWith("0000") && l.klid.slice(-4).toLowerCase() === localeHex,
@@ -63,10 +59,6 @@
 
   onMount(detectWindowsDefault);
 
-  // Preset → ModifierToggles mapping. Mac shortcuts swaps both sides of
-  // Cmd ↔ Ctrl so Cmd+C/V/X behaves like macOS. Windows-strict keeps Ctrl
-  // at its Windows position but swaps Option ↔ Cmd so the physical key
-  // order matches a PC keyboard (Ctrl-Win-Alt from the spacebar outward).
   function presetToToggles(p: ModPreset): ModifierToggles {
     switch (p) {
       case "macShortcuts":
@@ -128,34 +120,36 @@
   }
 </script>
 
-<div class="page">
+<div class="page done">
   <div class="page__content">
     <div class="checkmark">&#10003;</div>
 
-    <div class="page__header">
+    <div class="done__hero">
+      <p class="done__eyebrow">{t(appState.lang, "ui.allSet")}</p>
       <h1 class="page__title">{t(appState.lang, "done.title")}</h1>
-      <p class="page__subtitle">{t(appState.lang, "done.congratulations")}</p>
+      <p class="done__lead">{t(appState.lang, "done.congratulations")}</p>
     </div>
 
-    <div class="status status--info" style="max-width: 460px;">
+    <div class="status status--info">
       {t(appState.lang, "done.switchInfo")}
     </div>
 
-    <p class="text-secondary text-center" style="max-width: 460px;">
+    <p class="done__instructions">
       {t(appState.lang, "done.instructions")}
     </p>
 
-    <!-- ── Optional: remove the Windows default layout for this locale ── -->
     {#if windowsDefaultTarget}
-      <div class="win-default-offer">
-        <h2 class="win-default-offer__title">
-          <span>{t(appState.lang, "done.removeWindowsDefault", { locale: windowsDefaultTarget.layoutText })}</span>
+      <section class="panel">
+        <header class="panel__header">
+          <h2 class="panel__title">
+            {t(appState.lang, "done.removeWindowsDefault", { locale: windowsDefaultTarget.layoutText })}
+          </h2>
           <span
             class="info-icon"
             title={t(appState.lang, "settings.reactivateInfo")}
             aria-label={t(appState.lang, "settings.reactivateInfo")}
           >&#9432;</span>
-        </h2>
+        </header>
         <button class="btn btn-secondary" onclick={removeWindowsDefault}>
           {t(appState.lang, "done.removeWindowsDefaultBtn", { locale: windowsDefaultTarget.layoutText })}
         </button>
@@ -166,38 +160,41 @@
           context={{ klid: windowsDefaultTarget.klid }}
           attemptCount={removeWinAttempt}
         />
-      </div>
+      </section>
     {:else if windowsDefaultRemoved}
-      <div class="status status--success" style="max-width: 460px;">
+      <div class="status status--success">
         {t(appState.lang, "done.windowsDefaultRemoved")}
       </div>
     {/if}
 
-    <!-- ── Optional Mac-style modifier remap ─────────────────────────── -->
-    <div class="mod-offer">
-      <h2 class="mod-offer__title">{t(appState.lang, "done.modOfferTitle")}</h2>
-      <p class="mod-offer__hint">{t(appState.lang, "done.modOfferHint")}</p>
+    <section class="panel">
+      <header class="panel__header panel__header--col">
+        <h2 class="panel__title">{t(appState.lang, "done.modOfferTitle")}</h2>
+        <p class="panel__hint">{t(appState.lang, "done.modOfferHint")}</p>
+      </header>
 
-      <label class="mod-opt">
-        <input type="radio" name="mod-preset" value="none" bind:group={selectedPreset} disabled={applied} />
-        <div class="mod-opt__text">
-          <span class="mod-opt__label">{t(appState.lang, "done.modNone")}</span>
-        </div>
-      </label>
-      <label class="mod-opt">
-        <input type="radio" name="mod-preset" value="macShortcuts" bind:group={selectedPreset} disabled={applied} />
-        <div class="mod-opt__text">
-          <span class="mod-opt__label">{t(appState.lang, "done.modMac")}</span>
-          <span class="mod-opt__desc">{t(appState.lang, "done.modMacDesc")}</span>
-        </div>
-      </label>
-      <label class="mod-opt">
-        <input type="radio" name="mod-preset" value="winStrict" bind:group={selectedPreset} disabled={applied} />
-        <div class="mod-opt__text">
-          <span class="mod-opt__label">{t(appState.lang, "done.modWin")}</span>
-          <span class="mod-opt__desc">{t(appState.lang, "done.modWinDesc")}</span>
-        </div>
-      </label>
+      <div class="mod-list">
+        <label class="mod-opt" class:mod-opt--active={selectedPreset === "none"}>
+          <input type="radio" name="mod-preset" value="none" bind:group={selectedPreset} disabled={applied} />
+          <div class="mod-opt__text">
+            <span class="mod-opt__label">{t(appState.lang, "done.modNone")}</span>
+          </div>
+        </label>
+        <label class="mod-opt" class:mod-opt--active={selectedPreset === "macShortcuts"}>
+          <input type="radio" name="mod-preset" value="macShortcuts" bind:group={selectedPreset} disabled={applied} />
+          <div class="mod-opt__text">
+            <span class="mod-opt__label">{t(appState.lang, "done.modMac")}</span>
+            <span class="mod-opt__desc">{t(appState.lang, "done.modMacDesc")}</span>
+          </div>
+        </label>
+        <label class="mod-opt" class:mod-opt--active={selectedPreset === "winStrict"}>
+          <input type="radio" name="mod-preset" value="winStrict" bind:group={selectedPreset} disabled={applied} />
+          <div class="mod-opt__text">
+            <span class="mod-opt__label">{t(appState.lang, "done.modWin")}</span>
+            <span class="mod-opt__desc">{t(appState.lang, "done.modWinDesc")}</span>
+          </div>
+        </label>
+      </div>
 
       <ElevatedErrorPanel
         error={modError}
@@ -214,7 +211,7 @@
           {applying ? t(appState.lang, "done.modApplying") : t(appState.lang, "done.modApply")}
         </button>
       {/if}
-    </div>
+    </section>
 
     <div class="page__actions">
       <button class="btn btn-secondary" onclick={openSettings}>
@@ -225,7 +222,7 @@
       </button>
     </div>
 
-    <div class="mt-4">
+    <div class="done__danger">
       <ElevatedErrorPanel
         error={uninstallError}
         onRetry={uninstall}
@@ -241,79 +238,121 @@
 </div>
 
 <style>
-  .win-default-offer {
-    width: 100%;
-    max-width: 480px;
-    margin: 12px auto 4px;
-    padding: 14px 16px;
-    box-sizing: border-box;
-    background: var(--color-bg-elevated, rgba(255,255,255,0.04));
-    border: 1px solid var(--color-border, rgba(0,0,0,0.15));
-    border-radius: 10px;
+  .done__hero {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-  .win-default-offer__title {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    line-height: 1.35;
-    display: flex;
+    align-items: center;
     gap: 6px;
+  }
+  .done__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-success);
+  }
+  .done__lead {
+    margin: 4px 0 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    text-align: center;
+    max-width: 480px;
+    text-wrap: balance;
+  }
+  .done__instructions {
+    margin: 0;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 480px;
+  }
+
+  .panel {
+    width: 100%;
+    max-width: 520px;
+    margin: 4px auto;
+    padding: 16px 18px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel__header {
+    display: flex;
     align-items: flex-start;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .panel__header--col { flex-direction: column; gap: 4px; }
+  .panel__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.4;
+  }
+  .panel__hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.4;
   }
   .info-icon {
     cursor: help;
-    color: var(--color-text-secondary);
+    color: var(--color-text-muted);
     flex-shrink: 0;
   }
-  .mod-offer {
-    width: 100%;
-    max-width: 480px;
-    margin: 12px auto 4px;
-    padding: 14px 16px;
-    box-sizing: border-box;
-    background: var(--color-bg-elevated, rgba(255,255,255,0.04));
-    border: 1px solid var(--color-border, rgba(0,0,0,0.15));
-    border-radius: 10px;
+
+  .mod-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-  }
-  .mod-offer__title {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-  .mod-offer__hint {
-    margin: 0 0 4px;
-    font-size: 0.78rem;
-    color: var(--color-text-secondary);
-    line-height: 1.35;
+    gap: 6px;
   }
   .mod-opt {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: flex-start;
     cursor: pointer;
-    padding: 6px 4px;
-    border-radius: 6px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
   }
-  .mod-opt:hover { background: rgba(127,127,127,0.06); }
-  .mod-opt input[type="radio"] { margin-top: 3px; }
+  .mod-opt:hover {
+    background: var(--color-overlay);
+    border-color: var(--color-border);
+  }
+  .mod-opt--active {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent-ring);
+  }
+  .mod-opt input[type="radio"] {
+    margin-top: 3px;
+    accent-color: var(--color-accent);
+  }
   .mod-opt__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .mod-opt__label {
-    font-size: 0.88rem;
-    font-weight: 500;
-  }
-  .mod-opt__desc {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    line-height: 1.3;
-  }
+  .mod-opt__label { font-size: 13px; font-weight: 600; color: var(--color-text); }
+  .mod-opt__desc { font-size: 12px; color: var(--color-text-secondary); line-height: 1.4; }
   .mod-offer__apply {
     align-self: flex-start;
     margin-top: 4px;
+  }
+
+  .done__danger {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--color-border);
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
 </style>

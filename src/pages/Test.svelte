@@ -43,11 +43,15 @@
 <div class="test-page">
   <header class="test-top">
     <div class="test-top__text">
+      <p class="test-top__eyebrow">{t(appState.lang, "ui.step", { n: "04" })}</p>
       <h1 class="test-top__title">{t(appState.lang, "test.title")}</h1>
       <p class="test-top__hint">{t(appState.lang, "test.hint")}</p>
     </div>
     <button class="btn btn-primary" onclick={goDone}>
       {t(appState.lang, "test.continue")}
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
     </button>
   </header>
 
@@ -62,7 +66,9 @@
 
   {#if lastCode}
     <p class="test-debug">
-      last key: code=<b>{lastCode}</b> key=<b>{lastKey}</b> mods=<b>{lastMods}</b>
+      <span class="test-debug__chip">code <b>{lastCode}</b></span>
+      <span class="test-debug__chip">key <b>{lastKey}</b></span>
+      <span class="test-debug__chip">mods <b>{lastMods}</b></span>
     </p>
   {/if}
 
@@ -77,58 +83,94 @@
   .test-page {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px 18px 14px;
+    gap: 12px;
+    padding: 18px 24px 22px;
     box-sizing: border-box;
     height: 100%;
     overflow: hidden;
   }
   .test-top {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
     flex-shrink: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
   }
   .test-top__text { min-width: 0; }
+  .test-top__eyebrow {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
   .test-top__title {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 600;
-    line-height: 1.2;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 24px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--color-text-strong);
   }
   .test-top__hint {
-    margin: 2px 0 0;
-    font-size: 0.78rem;
+    margin: 4px 0 0;
+    font-size: 13px;
     color: var(--color-text-secondary);
-    line-height: 1.3;
+    line-height: 1.4;
   }
   .test-input {
     flex-shrink: 0;
     width: 100%;
     min-height: 90px;
-    padding: 10px 12px;
+    padding: 14px 16px;
     box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 1rem;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.5;
     color: var(--color-text);
-    background: var(--color-bg-elevated, rgba(255,255,255,0.04));
-    border: 1px solid var(--color-border, rgba(0,0,0,0.15));
-    border-radius: 8px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
     resize: vertical;
+    box-shadow: var(--shadow-xs);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
+  .test-input::placeholder { color: var(--color-text-muted); }
   .test-input:focus {
-    outline: 2px solid var(--color-primary, #2865d4);
-    outline-offset: -1px;
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
   }
   .test-debug {
     flex-shrink: 0;
     margin: 0;
-    font-size: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
     color: var(--color-text-secondary);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    opacity: 0.8;
   }
+  .test-debug__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: var(--color-overlay);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+  }
+  .test-debug__chip b {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
   .test-kbd {
     flex: 1 1 auto;
     min-height: 0;

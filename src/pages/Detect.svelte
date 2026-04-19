@@ -31,18 +31,11 @@
   let detectedId = $state<string | null>(null);
   let detectedLayout = $state<Layout | null>(null);
   let failed = $state(false);
-  // TEMP debug: last keypress info shown on-screen so the user can report what
-  // their physical keys actually send.
   let showWrongToast = $state(false);
   let toastTimer: ReturnType<typeof setTimeout> | null = null;
-  // Chars already shown to the user — never re-ask the same one even if it would still score well.
   let askedChars = $state(new Set<string>());
 
   function pickQuestion(): DetectionCharEntry | null {
-    // Force `@` as the very first question when no narrowing has happened yet:
-    // it's universally recognizable and printed prominently on every Apple keyboard variant.
-    // (The pure minimax winner can be an obscure glyph like `|` — algorithmically optimal,
-    // but users may not visually identify it on their physical keycap.)
     if (questionsAsked === 0 && askedChars.size === 0) {
       const at = catalogue.characters.find((c) => c.char === "@");
       if (at) return at;
@@ -123,10 +116,6 @@
 
   function clickNoKey() {
     if (!currentChar) return;
-    // If the char is missing from at least one candidate, "no_such_key" is informative —
-    // narrow and count this as a real question. Otherwise the user just can't find this
-    // glyph on their keycap (it might be printed differently or hidden on a modifier
-    // layer); skip silently without penalizing the question budget.
     const someAbsent = layoutsWithChar(currentChar, candidates).length < candidates.length;
     if (someAbsent) {
       candidates = applyResponse(currentChar, candidates, { kind: "no_such_key" });
@@ -155,9 +144,6 @@
     appState.page = "preview";
   }
 
-  // The "I don't have this key" button is always available during a prompt — even when the
-  // catalogue says every layout has the char. The user might genuinely not see it (printed
-  // differently, hidden on a modifier layer). clickNoKey() handles both cases.
   let showNoKeyButton = $derived(!!currentChar);
 
   let progressPct = $derived((questionsAsked / MAX_QUESTIONS) * 100);
@@ -172,28 +158,36 @@
   });
 </script>
 
-<div class="page">
-  <div class="page__header">
-    <h1 class="page__title">{t(appState.lang, "detect.title")}</h1>
-  </div>
-
-  <div class="page__content">
-    {#if detectedId}
-      <div class="detect-success">
-        <div class="status status--success">
-          {t(appState.lang, "detect.detected", { name: detectedName(detectedId) })}
-        </div>
-        <button class="btn btn-primary" onclick={goPreview}>
-          {t(appState.lang, "detect.continue")}
-        </button>
+<div class="page detect">
+  {#if detectedId}
+    <div class="detect-success">
+      <div class="status status--success">
+        <strong>{t(appState.lang, "detect.detected", { name: detectedName(detectedId) })}</strong>
       </div>
+      <button class="btn btn-primary btn-large" onclick={goPreview}>
+        {t(appState.lang, "detect.continue")}
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </button>
+    </div>
 
-      {#if detectedLayout}
-        <div class="detect-kbd">
-          <KeyboardVisual layout={detectedLayout} activeLayer="base" />
-        </div>
-      {/if}
-    {:else if currentChar}
+    {#if detectedLayout}
+      <div class="detect-kbd">
+        <KeyboardVisual layout={detectedLayout} activeLayer="base" />
+      </div>
+    {/if}
+  {:else if currentChar}
+    <div class="detect__header">
+      <p class="detect__eyebrow">
+        {t(appState.lang, "detect.title")}
+      </p>
+      <p class="detect__progress-label">
+        {t(appState.lang, "detect.progress", {
+          current: String(questionsAsked + 1),
+          total: String(MAX_QUESTIONS),
+        })}
+      </p>
       <div
         class="progress-bar"
         role="progressbar"
@@ -203,51 +197,81 @@
       >
         <div class="progress-bar__fill" style="width: {progressPct}%"></div>
       </div>
+    </div>
 
-      {#if showWrongToast}
-        <div class="status status--error" role="alert">
-          {t(appState.lang, "detect.wrongKey")}
-        </div>
-      {/if}
-
-      {#if wrongPresses >= MAX_WRONG_PER_QUESTION}
-        <div class="status status--info" role="status">
-          {t(appState.lang, "detect.wrongKeyHelp")}
-        </div>
-      {/if}
-
-      <div class="detect-prompt">
-        <p class="detect-prompt__text">{t(appState.lang, "detect.charPrompt")}</p>
+    <div class="detect-prompt">
+      <p class="detect-prompt__text">{t(appState.lang, "detect.charPrompt")}</p>
+      <div class="detect-prompt__char-wrap">
         <div class="detect-prompt__char">{currentChar.char}</div>
-        <p class="text-secondary">{t(appState.lang, "detect.charHint")}</p>
       </div>
+      <p class="detect-prompt__hint">{t(appState.lang, "detect.charHint")}</p>
+    </div>
 
-      <div class="page__actions">
-        {#if showNoKeyButton}
-          <button class="btn btn-secondary" onclick={clickNoKey}>
-            {t(appState.lang, "detect.noKey")}
-          </button>
-        {/if}
-        <button class="btn btn-secondary" onclick={pickManually}>
-          {t(appState.lang, "detect.manual")}
-        </button>
-        <button class="btn btn-secondary" onclick={goBack}>
-          {t(appState.lang, "detect.back")}
-        </button>
+    {#if showWrongToast}
+      <div class="status status--error" role="alert">
+        {t(appState.lang, "detect.wrongKey")}
       </div>
-    {:else}
-      <div class="spinner"></div>
     {/if}
-  </div>
+
+    {#if wrongPresses >= MAX_WRONG_PER_QUESTION}
+      <div class="status status--info" role="status">
+        {t(appState.lang, "detect.wrongKeyHelp")}
+      </div>
+    {/if}
+
+    <div class="page__actions">
+      {#if showNoKeyButton}
+        <button class="btn btn-secondary" onclick={clickNoKey}>
+          {t(appState.lang, "detect.noKey")}
+        </button>
+      {/if}
+      <button class="btn btn-secondary" onclick={pickManually}>
+        {t(appState.lang, "detect.manual")}
+      </button>
+      <button class="btn btn-secondary" onclick={goBack}>
+        {t(appState.lang, "detect.back")}
+      </button>
+    </div>
+  {:else}
+    <div class="spinner"></div>
+  {/if}
 </div>
 
 <style>
+  .detect {
+    gap: 18px;
+  }
+  .detect__header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .detect__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .detect__progress-label {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary);
+  }
+
   .detect-success {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 14px;
+    margin-bottom: 20px;
   }
   .detect-kbd {
     display: flex;
@@ -261,37 +285,84 @@
     --gap: 4px;
     --radius-key: 6px;
   }
+
+  /* Prompt centerpiece — dramatic char card */
   .detect-prompt {
     text-align: center;
-    margin: 2rem auto;
-    max-width: 480px;
+    margin: 4px auto 0;
+    padding: 26px 32px 28px;
+    max-width: 540px;
+    width: 100%;
+    background:
+      radial-gradient(ellipse at top, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent 60%),
+      var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .detect-prompt::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-accent-ring), transparent);
+    opacity: 0.6;
   }
   .detect-prompt__text {
-    font-size: 1rem;
+    font-size: 14px;
     color: var(--color-text-secondary);
-    margin-bottom: 1.5rem;
+    margin: 0 0 18px;
+    letter-spacing: -0.005em;
+  }
+  .detect-prompt__char-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 18px;
   }
   .detect-prompt__char {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 1.5rem;
-    font-size: 64px;
-    font-weight: 400;
+    width: 132px;
+    height: 132px;
+    font-family: var(--font-mono);
+    font-size: 76px;
+    font-weight: 500;
     color: var(--color-text);
-    background: linear-gradient(180deg, #ffffff 0%, #f0f0f4 100%);
-    border-radius: 18px;
-    border: 1px solid rgba(0,0,0,0.08);
+    background: linear-gradient(180deg, #ffffff 0%, #ececf0 100%);
+    border-radius: 22px;
+    border: 1px solid rgba(0,0,0,0.10);
     box-shadow:
       0 0.5px 0 rgba(255,255,255,0.95) inset,
-      0 4px 14px rgba(0,0,0,0.10);
+      0 -1px 0 rgba(0,0,0,0.04) inset,
+      0 8px 22px rgba(0,0,0,0.12),
+      0 2px 4px rgba(0,0,0,0.06);
+    animation: charPop 380ms var(--ease-out) both;
+  }
+  @keyframes charPop {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1);    }
   }
   :root[data-theme="dark"] .detect-prompt__char,
   :root:not([data-theme="light"]) .detect-prompt__char {
-    background: linear-gradient(180deg, #5a5a5e 0%, #4a4a4c 100%);
-    border-color: rgba(0,0,0,0.45);
+    background: linear-gradient(180deg, #5a5a5e 0%, #3f3f44 100%);
+    border-color: rgba(0,0,0,0.50);
     color: #f5f5f7;
+    box-shadow:
+      0 0.5px 0 rgba(255,255,255,0.10) inset,
+      0 -1px 0 rgba(0,0,0,0.30) inset,
+      0 12px 28px rgba(0,0,0,0.55),
+      0 2px 4px rgba(0,0,0,0.30);
+  }
+  .detect-prompt__hint {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+    max-width: 380px;
+    margin-left: auto;
+    margin-right: auto;
   }
 </style>

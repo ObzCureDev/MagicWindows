@@ -14,8 +14,6 @@
   let removeAttempt = $state(0);
   let lastRemoveTarget = $state<InstalledLayoutInfo | null>(null);
 
-  // Only show layouts the user actually uses (present in HKCU\Keyboard Layout\Preload)
-  // — the HKLM registry has hundreds of layouts Windows has ever seen, which is noise.
   let activeLayouts = $derived(allLayouts.filter((l) => l.isInUse));
 
   async function loadLayouts() {
@@ -65,13 +63,18 @@
   onMount(loadLayouts);
 </script>
 
-<div class="page">
+<div class="page settings">
   <div class="settings-topbar">
     <button class="btn btn-secondary btn-sm" onclick={goBack} aria-label={t(appState.lang, "common.back")}>
-      &larr; {t(appState.lang, "common.back")}
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 12H5M11 18l-6-6 6-6" />
+      </svg>
+      {t(appState.lang, "common.back")}
     </button>
   </div>
+
   <div class="page__header">
+    <p class="settings__eyebrow">{t(appState.lang, "ui.manage")}</p>
     <h1 class="page__title">{t(appState.lang, "settings.title")}</h1>
     <p class="page__subtitle">{t(appState.lang, "settings.subtitle")}</p>
   </div>
@@ -141,6 +144,14 @@
 </div>
 
 <style>
+  .settings__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
   .settings-topbar {
     width: 100%;
     max-width: 640px;
@@ -151,7 +162,7 @@
   .layout-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
     max-width: 640px;
     margin: 0 auto;
@@ -161,35 +172,80 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 12px 14px;
-    background: var(--color-bg-elevated, rgba(255,255,255,0.04));
-    border: 1px solid var(--color-border, rgba(0,0,0,0.15));
-    border-radius: 8px;
+    padding: 14px 18px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+    transition: border-color var(--transition-fast), background var(--transition-fast);
   }
-  .layout-row__main { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-  .layout-row__title { font-weight: 600; }
-  .layout-row__meta { font-size: 0.78rem; color: var(--color-text-secondary); display: flex; gap: 6px; align-items: center; }
-  .layout-row__meta code { font-size: 0.78rem; }
+  .layout-row:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-card-hover);
+  }
+  .layout-row__main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+  .layout-row__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .layout-row__meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    letter-spacing: 0.02em;
+  }
+  .layout-row__meta code { font-size: 11px; }
   .layout-row__dot { opacity: 0.5; }
-  .layout-row__badges { display: flex; gap: 6px; margin-top: 2px; flex-wrap: wrap; }
+  .layout-row__badges {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
   .badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     white-space: nowrap;
+    border: 1px solid transparent;
   }
-  .badge--magic { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-  .badge--system { background: rgba(156, 163, 175, 0.15); color: #6b7280; }
-  .badge--in-use { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-  .layout-row__actions { display: flex; align-items: center; gap: 8px; }
+  .badge--magic {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    border-color: var(--color-accent-ring);
+  }
+  .badge--system {
+    background: var(--color-overlay);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+  }
+  .badge--in-use {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border-color: var(--color-success-border);
+  }
+  .layout-row__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .info-icon {
     cursor: help;
-    color: var(--color-text-secondary);
+    color: var(--color-text-muted);
     font-size: 1.05rem;
   }
-  .btn-sm { padding: 4px 10px; font-size: 0.85rem; }
-  .btn-danger { background: #dc3545; color: white; border-color: #dc3545; }
-  .btn-danger:hover { background: #c82333; }
 </style>

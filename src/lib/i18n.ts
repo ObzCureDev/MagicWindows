@@ -172,6 +172,16 @@ export const translations: Record<string, Record<string, unknown>> = {
       cancel: "Cancel",
       loading: "Loading...",
     },
+    ui: {
+      step: "Step {n}",
+      allSet: "All set",
+      installing: "Installing",
+      manage: "Manage",
+      about: "About",
+      system: "System",
+      footnote: "6 layouts · EN · FR · DE · ES · IT · UK",
+      installHint: "This usually takes 2 to 4 seconds.",
+    },
   },
   fr: {
     appTitle: "MagicWindows",
@@ -346,6 +356,16 @@ export const translations: Record<string, Record<string, unknown>> = {
       back: "Retour",
       cancel: "Annuler",
       loading: "Chargement…",
+    },
+    ui: {
+      step: "Étape {n}",
+      allSet: "Tout est prêt",
+      installing: "Installation",
+      manage: "Gestion",
+      about: "À propos",
+      system: "Système",
+      footnote: "6 dispositions · EN · FR · DE · ES · IT · UK",
+      installHint: "Cela prend généralement de 2 à 4 secondes.",
     },
   },
 };

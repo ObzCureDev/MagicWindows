@@ -18,7 +18,6 @@
   let success = $state(false);
   let showExternalDetails = $state(false);
 
-  // The "both sides" UI checkbox is a derived view of the two per-side flags.
   let bothSides = $derived(toggles.swapCmdCtrlLeft && toggles.swapCmdCtrlRight);
   let cmdCtrlActive = $derived(toggles.swapCmdCtrlLeft || toggles.swapCmdCtrlRight);
 
@@ -39,7 +38,7 @@
   function setBothSides(v: boolean) {
     toggles.swapCmdCtrlLeft  = v;
     toggles.swapCmdCtrlRight = v;
-    if (v) toggles.swapOptionCmd = false; // mutual exclusion
+    if (v) toggles.swapOptionCmd = false;
   }
 
   function setSwapOptionCmd(v: boolean) {
@@ -61,7 +60,7 @@
     try {
       await invoke("write_scancode_map", { toggles });
       success = true;
-      await load(); // refresh state from registry
+      await load();
       phase = "select";
     } catch (e) {
       error = String(e);
@@ -87,7 +86,6 @@
     appState.page = "welcome";
   }
 
-  // Helpers for the preview panel
   function pairsForCurrent(): RawScancodePair[] {
     return modState?.rawEntries ?? [];
   }
@@ -106,7 +104,6 @@
     return `${o} → ${n}`;
   }
 
-  // Local mirror of the Rust build_scancode_map for the preview panel.
   function pair(newCode: string, oldCode: string): RawScancodePair {
     return { newCode, oldCode };
   }
@@ -133,8 +130,9 @@
   onMount(load);
 </script>
 
-<div class="page">
+<div class="page modifiers">
   <div class="page__header">
+    <p class="modifiers__eyebrow">{t(appState.lang, "ui.system")}</p>
     <h1 class="page__title">{t(appState.lang, "modifiers.title")}</h1>
     <p class="page__subtitle">{t(appState.lang, "modifiers.description")}</p>
   </div>
@@ -164,45 +162,49 @@
       {/if}
 
       <div class="toggle-list">
-        <label class="toggle-row">
+        <label class="toggle-row" class:toggle-row--active={bothSides}>
           <input type="checkbox"
                  checked={bothSides}
                  disabled={toggles.swapOptionCmd}
                  onchange={(e) => setBothSides((e.currentTarget as HTMLInputElement).checked)} />
-          <div>
+          <div class="toggle-text">
             <div class="toggle-label">{t(appState.lang, "modifiers.toggleSwapBoth")}</div>
             <div class="toggle-hint">{t(appState.lang, "modifiers.toggleSwapBothHint")}</div>
           </div>
         </label>
 
-        <label class="toggle-row">
+        <label class="toggle-row" class:toggle-row--active={toggles.swapCmdCtrlLeft}>
           <input type="checkbox"
                  bind:checked={toggles.swapCmdCtrlLeft}
                  disabled={toggles.swapOptionCmd} />
-          <div class="toggle-label">{t(appState.lang, "modifiers.toggleSwapLeft")}</div>
+          <div class="toggle-text">
+            <div class="toggle-label">{t(appState.lang, "modifiers.toggleSwapLeft")}</div>
+          </div>
         </label>
 
-        <label class="toggle-row">
+        <label class="toggle-row" class:toggle-row--active={toggles.swapCmdCtrlRight}>
           <input type="checkbox"
                  bind:checked={toggles.swapCmdCtrlRight}
                  disabled={toggles.swapOptionCmd} />
-          <div class="toggle-label">{t(appState.lang, "modifiers.toggleSwapRight")}</div>
+          <div class="toggle-text">
+            <div class="toggle-label">{t(appState.lang, "modifiers.toggleSwapRight")}</div>
+          </div>
         </label>
 
-        <label class="toggle-row">
+        <label class="toggle-row" class:toggle-row--active={toggles.capsToCtrl}>
           <input type="checkbox" bind:checked={toggles.capsToCtrl} />
-          <div>
+          <div class="toggle-text">
             <div class="toggle-label">{t(appState.lang, "modifiers.toggleCaps")}</div>
             <div class="toggle-hint">{t(appState.lang, "modifiers.toggleCapsHint")}</div>
           </div>
         </label>
 
-        <label class="toggle-row">
+        <label class="toggle-row" class:toggle-row--active={toggles.swapOptionCmd}>
           <input type="checkbox"
                  checked={toggles.swapOptionCmd}
                  disabled={cmdCtrlActive}
                  onchange={(e) => setSwapOptionCmd((e.currentTarget as HTMLInputElement).checked)} />
-          <div>
+          <div class="toggle-text">
             <div class="toggle-label">{t(appState.lang, "modifiers.toggleOptionCmd")}</div>
             <div class="toggle-hint">{t(appState.lang, "modifiers.toggleOptionCmdHint")}</div>
           </div>
@@ -224,13 +226,13 @@
       </div>
 
     {:else if phase === "preview" || phase === "applying"}
-      <h2>{t(appState.lang, "modifiers.previewTitle")}</h2>
+      <h2 class="modifiers__preview-title">{t(appState.lang, "modifiers.previewTitle")}</h2>
 
       <div class="preview-grid">
-        <div>
-          <h3>{t(appState.lang, "modifiers.previewBefore")}</h3>
+        <div class="preview-col">
+          <h3 class="preview-col__title">{t(appState.lang, "modifiers.previewBefore")}</h3>
           {#if pairsForCurrent().length === 0}
-            <p class="text-secondary">{t(appState.lang, "modifiers.previewNoChange")}</p>
+            <p class="preview-col__empty">{t(appState.lang, "modifiers.previewNoChange")}</p>
           {:else}
             <ul class="raw-pairs">
               {#each pairsForCurrent() as p}<li><code>{describePair(p)}</code></li>{/each}
@@ -238,10 +240,10 @@
           {/if}
         </div>
 
-        <div>
-          <h3>{t(appState.lang, "modifiers.previewAfter")}</h3>
+        <div class="preview-col preview-col--after">
+          <h3 class="preview-col__title">{t(appState.lang, "modifiers.previewAfter")}</h3>
           {#if previewPairs(toggles).length === 0}
-            <p class="text-secondary">{t(appState.lang, "modifiers.previewNoChange")}</p>
+            <p class="preview-col__empty">{t(appState.lang, "modifiers.previewNoChange")}</p>
           {:else}
             <ul class="raw-pairs">
               {#each previewPairs(toggles) as p}<li><code>{describePair(p)}</code></li>{/each}
@@ -271,20 +273,132 @@
 </div>
 
 <style>
-  .toggle-list { display: flex; flex-direction: column; gap: 12px; max-width: 560px; margin: 1rem auto; }
+  .modifiers__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .toggle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 580px;
+    margin: 4px auto;
+  }
   .toggle-row {
-    display: flex; align-items: flex-start; gap: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
     background: var(--color-bg-card);
     cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-xs);
   }
-  .toggle-row input[type="checkbox"] { margin-top: 3px; }
-  .toggle-label { font-weight: 500; color: var(--color-text); }
-  .toggle-hint  { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
-  .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 720px; margin: 1rem auto; }
-  .raw-pairs { list-style: none; padding: 0; margin: 0; }
-  .raw-pairs li { padding: 4px 0; }
-  .raw-pairs code { font-family: var(--font-mono); font-size: 13px; }
-  .link { background: none; border: none; color: var(--color-accent); text-decoration: underline; cursor: pointer; padding: 0; margin-left: 8px; }
+  .toggle-row:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-card-hover);
+  }
+  .toggle-row--active {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent-ring);
+    box-shadow: 0 0 0 1px var(--color-accent-ring);
+  }
+  .toggle-row input[type="checkbox"] {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+  }
+  .toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .toggle-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-text);
+  }
+  .toggle-hint {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+  }
+
+  .modifiers__preview-title {
+    margin: 0 0 8px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "opsz" 144;
+    font-size: 22px;
+    color: var(--color-text-strong);
+  }
+  .preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .preview-col {
+    padding: 14px 16px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+  .preview-col--after {
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent-ring);
+  }
+  .preview-col__title {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .preview-col__empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+  .raw-pairs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .raw-pairs li {
+    padding: 0;
+  }
+  .raw-pairs code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-text);
+  }
+  .link {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 8px;
+    font: inherit;
+  }
 </style>
