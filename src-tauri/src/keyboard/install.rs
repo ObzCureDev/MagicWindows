@@ -28,8 +28,11 @@ fn dirs_next_or_temp() -> PathBuf {
 // ── Windows implementation ──────────────────────────────────────────────────
 
 #[cfg(target_os = "windows")]
-pub fn install_layout(layout: &Layout, app: &tauri::AppHandle) -> Result<(), String> {
+pub fn install_layout(layout: &Layout, app: &tauri::AppHandle) -> Result<u64, String> {
     use std::fs;
+    use std::time::Instant;
+
+    let started = Instant::now();
 
     // ── 1. Locate the bundled pre-compiled DLL ──────────────────────────────
     let dll_src = resolve_bundled_dll(layout, app)?;
@@ -196,7 +199,9 @@ Write-Host 'Keyboard layout installed successfully.'
             log::warn!("Could not read install markers from HKLM: {e}; skipping auto-activation");
         }
     }
-    Ok(())
+    let elapsed_ms = started.elapsed().as_millis() as u64;
+    log::info!("Layout {} install completed in {elapsed_ms} ms", layout.id);
+    Ok(elapsed_ms)
 }
 
 /// Read the KLID, language tag, and list of stale KLIDs (purged by the install
@@ -549,53 +554,64 @@ Write-Host 'Keyboard layout uninstalled successfully.'
 /// HKCU\Keyboard Layout\Preload and from each language's InputMethodTips list.
 /// Without this, Windows logs "layout file missing" errors on every logon for
 /// the dead KLIDs the user previously had loaded.
+/// Run an unprivileged PowerShell to remove the given KLIDs from
+/// `HKCU\Keyboard Layout\Preload` and from each language's `InputMethodTips`.
+/// Called by both the layout-uninstall path and the new uninstall-by-klid path.
 #[cfg(target_os = "windows")]
-fn purge_hkcu_after_uninstall(work_dir: &std::path::Path) -> Result<(), String> {
+fn purge_hkcu_klids(work_dir: &std::path::Path, klids: &[String]) -> Result<(), String> {
     use std::process::Command;
 
-    let script = r#"
-$key = 'HKLM:\SOFTWARE\MagicWindows'
-if (-not (Test-Path -LiteralPath $key)) { Write-Host 'No marker key, skipping HKCU purge'; exit 0 }
-$stale = (Get-ItemProperty -LiteralPath $key -Name 'LastUninstalledKLIDs' -ErrorAction SilentlyContinue).LastUninstalledKLIDs
-if (-not $stale) { Write-Host 'No LastUninstalledKLIDs, skipping'; exit 0 }
-$staleKlids = @($stale -split ',' | Where-Object { $_ })
+    if klids.is_empty() {
+        return Ok(());
+    }
 
-# Purge Preload entries
-try {
+    let klids_ps_array = format!(
+        "@({})",
+        klids
+            .iter()
+            .map(|k| format!("'{}'", k.replace('\'', "''")))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+
+    let script = format!(r#"
+$staleKlids = {klids_ps_array}
+
+try {{
     $preload = 'HKCU:\Keyboard Layout\Preload'
-    if (Test-Path -LiteralPath $preload) {
-        $names = (Get-Item -LiteralPath $preload).GetValueNames() | Where-Object { $_ -match '^\d+$' }
-        foreach ($name in $names) {
+    if (Test-Path -LiteralPath $preload) {{
+        $names = (Get-Item -LiteralPath $preload).GetValueNames() | Where-Object {{ $_ -match '^\d+$' }}
+        foreach ($name in $names) {{
             $val = (Get-ItemProperty -LiteralPath $preload -Name $name).$name
-            if ($staleKlids -contains $val) {
+            if ($staleKlids -contains $val) {{
                 Write-Host "Purging Preload $name=$val"
                 Remove-ItemProperty -LiteralPath $preload -Name $name -ErrorAction SilentlyContinue
-            }
-        }
-    }
-} catch { Write-Host "Preload purge failed: $_" }
+            }}
+        }}
+    }}
+}} catch {{ Write-Host "Preload purge failed: $_" }}
 
-# Purge InputMethodTips
-try {
+try {{
     $list = Get-WinUserLanguageList
     $changed = $false
-    foreach ($lang in $list) {
+    foreach ($lang in $list) {{
         $toRemove = @()
-        foreach ($tip in $lang.InputMethodTips) {
+        foreach ($tip in $lang.InputMethodTips) {{
             $tipKlid = ($tip -split ':')[1]
-            if ($staleKlids -contains $tipKlid) { $toRemove += $tip }
-        }
-        foreach ($t in $toRemove) {
+            if ($staleKlids -contains $tipKlid) {{ $toRemove += $tip }}
+        }}
+        foreach ($t in $toRemove) {{
             Write-Host "Purging tip $t from $($lang.LanguageTag)"
             $null = $lang.InputMethodTips.Remove($t)
             $changed = $true
-        }
-    }
-    if ($changed) { Set-WinUserLanguageList $list -Force }
-} catch { Write-Host "Tip purge failed: $_" }
-"#;
-    let ps_path = work_dir.join("uninstall_purge.ps1");
-    write_ps_with_bom(&ps_path, script).map_err(|e| format!("write purge script: {e}"))?;
+        }}
+    }}
+    if ($changed) {{ Set-WinUserLanguageList $list -Force }}
+}} catch {{ Write-Host "Tip purge failed: $_" }}
+"#);
+
+    let ps_path = work_dir.join("hkcu_purge.ps1");
+    write_ps_with_bom(&ps_path, &script).map_err(|e| format!("write purge script: {e}"))?;
     let out = Command::new("powershell")
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-File", &ps_path.to_string_lossy()])
         .output()
@@ -604,6 +620,110 @@ try {
         return Err(format!("HKCU purge failed: {}", String::from_utf8_lossy(&out.stderr).trim()));
     }
     Ok(())
+}
+
+/// Backwards-compat wrapper: reads the `LastUninstalledKLIDs` marker from HKLM
+/// (written by the elevated uninstall step) and purges HKCU accordingly.
+#[cfg(target_os = "windows")]
+fn purge_hkcu_after_uninstall(work_dir: &std::path::Path) -> Result<(), String> {
+    use std::process::Command;
+
+    let read_script = r#"
+$key = 'HKLM:\SOFTWARE\MagicWindows'
+if (-not (Test-Path -LiteralPath $key)) { Write-Host ''; exit 0 }
+$v = (Get-ItemProperty -LiteralPath $key -Name 'LastUninstalledKLIDs' -ErrorAction SilentlyContinue).LastUninstalledKLIDs
+if ($v) { Write-Host $v }
+"#;
+    let out = Command::new("powershell")
+        .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", read_script])
+        .output()
+        .map_err(|e| format!("spawn read marker: {e}"))?;
+    let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    let klids: Vec<String> = if stdout.is_empty() {
+        Vec::new()
+    } else {
+        stdout
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    };
+    purge_hkcu_klids(work_dir, &klids)
+}
+
+/// Uninstall any keyboard layout by its registry KLID. Works for both
+/// MagicWindows layouts (also removes the DLL from System32 and SysWOW64)
+/// and OEM/system layouts (registry entry only; DLL in System32 stays put —
+/// Microsoft's own DLLs are protected and re-addable via Windows Settings).
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn uninstall_by_klid(klid: String) -> Result<(), String> {
+    use std::fs;
+
+    // KLID validation: 8 hex chars. Prevents PS injection via malformed klid.
+    if klid.len() != 8 || !klid.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(format!("Invalid KLID: '{klid}' (expected 8 hex chars)"));
+    }
+
+    let install_dir = get_install_dir();
+    fs::create_dir_all(&install_dir)
+        .map_err(|e| format!("Failed to create work dir: {e}"))?;
+
+    let ps_script = format!(
+        r#"
+$ErrorActionPreference = 'Stop'
+$principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {{
+    throw "Administrator privileges are required to uninstall keyboard layouts."
+}}
+
+$klid = '{klid}'
+$regPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\$klid"
+
+if (-not (Test-Path -LiteralPath $regPath)) {{
+    throw "Layout $klid is not installed."
+}}
+
+$layoutFile = (Get-ItemProperty -LiteralPath $regPath -Name 'Layout File' -ErrorAction SilentlyContinue).'Layout File'
+Write-Host "Removing registry entry $klid (Layout File: $layoutFile)"
+Remove-Item -LiteralPath $regPath -Recurse -Force
+
+# Only delete the DLL if it is one of ours (kbdapl*). Microsoft DLLs must stay.
+if ($layoutFile -and $layoutFile.ToLower().StartsWith('kbdapl')) {{
+    $sys32Dll = "$env:SystemRoot\System32\$layoutFile"
+    if (Test-Path -LiteralPath $sys32Dll) {{
+        Write-Host "Removing MagicWindows DLL: $sys32Dll"
+        Remove-Item -LiteralPath $sys32Dll -Force
+    }}
+    $wow64Dll = "$env:SystemRoot\SysWOW64\$layoutFile"
+    if (Test-Path -LiteralPath $wow64Dll) {{
+        Write-Host "Removing stray SysWOW64 DLL: $wow64Dll"
+        Remove-Item -LiteralPath $wow64Dll -Force
+    }}
+}}
+
+# Stash the removed KLID for the HKCU purge step that follows.
+$markerKey = 'HKLM:\SOFTWARE\MagicWindows'
+if (-not (Test-Path -LiteralPath $markerKey)) {{ New-Item -Path $markerKey -Force | Out-Null }}
+Set-ItemProperty -LiteralPath $markerKey -Name 'LastUninstalledKLIDs' -Value $klid -Force
+
+Write-Host "Uninstall complete."
+"#
+    );
+
+    run_elevated_ps(&install_dir, "uninstall_by_klid", &ps_script)?;
+    log::info!("Layout KLID {klid} uninstalled");
+
+    if let Err(e) = purge_hkcu_klids(&install_dir, &[klid.clone()]) {
+        log::warn!("Layout uninstalled but HKCU purge failed: {e}");
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn uninstall_by_klid(_klid: String) -> Result<(), String> {
+    Err("Uninstallation requires Windows.".to_string())
 }
 
 /// Write a PowerShell script to disk with a UTF-8 BOM. Windows PowerShell 5.1
@@ -742,7 +862,7 @@ exit $proc.ExitCode
 // ── Non-Windows stubs ───────────────────────────────────────────────────────
 
 #[cfg(not(target_os = "windows"))]
-pub fn install_layout(_layout: &Layout, _app: &tauri::AppHandle) -> Result<(), String> {
+pub fn install_layout(_layout: &Layout, _app: &tauri::AppHandle) -> Result<u64, String> {
     Err("Installation requires Windows.".to_string())
 }
 
@@ -760,4 +880,86 @@ pub fn run_elevated_ps_for_modifiers(
     ps_script: &str,
 ) -> Result<String, String> {
     run_elevated_ps(work_dir, label, ps_script)
+}
+
+// ── Settings page: list every registered keyboard layout ────────────────────
+
+/// Enumerate every layout registered in `HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts`.
+/// Unprivileged read (HKLM is world-readable). Returns a flag per layout indicating
+/// whether it was installed by MagicWindows (DLL name starts with `kbdapl`) and
+/// whether it is currently referenced by the user's `HKCU\Keyboard Layout\Preload`.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn list_all_installed_layouts() -> Result<Vec<super::InstalledLayoutInfo>, String> {
+    use std::process::Command;
+
+    // PowerShell is the simplest way to iterate HKLM Keyboard Layouts without
+    // pulling in the `windows` crate. HKLM and HKCU are both user-readable so
+    // no elevation required.
+    let script = r#"
+$ErrorActionPreference = 'Stop'
+$root = 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts'
+$preload = 'HKCU:\Keyboard Layout\Preload'
+
+# Collect all KLIDs currently loaded for this user (for the isInUse flag).
+$inUse = @{}
+if (Test-Path -LiteralPath $preload) {
+    $names = (Get-Item -LiteralPath $preload).GetValueNames() | Where-Object { $_ -match '^\d+$' }
+    foreach ($name in $names) {
+        $val = (Get-ItemProperty -LiteralPath $preload -Name $name).$name
+        if ($val) { $inUse[$val.ToLower()] = $true }
+    }
+}
+
+# One line per layout: klid|layout_file|layout_text|isMagicWindows|isInUse
+Get-ChildItem -LiteralPath $root -ErrorAction SilentlyContinue | ForEach-Object {
+    $klid = $_.PSChildName
+    $props = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue
+    $file = if ($props.'Layout File') { $props.'Layout File' } else { '' }
+    $text = if ($props.'Layout Text') { $props.'Layout Text' } else { '' }
+    $isMw = $file.ToLower().StartsWith('kbdapl')
+    $iu   = $inUse.ContainsKey($klid.ToLower())
+    # Replace any literal pipes in text to keep the separator unambiguous on the Rust side.
+    $safeText = $text -replace '\|', '/'
+    "$klid|$file|$safeText|$isMw|$iu"
+}
+"#;
+
+    let output = Command::new("powershell")
+        .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
+        .output()
+        .map_err(|e| format!("Failed to invoke powershell: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "powershell list failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut out = Vec::new();
+    for line in stdout.lines() {
+        let line = line.trim();
+        if line.is_empty() { continue; }
+        let parts: Vec<&str> = line.splitn(5, '|').collect();
+        if parts.len() != 5 { continue; }
+        out.push(super::InstalledLayoutInfo {
+            klid: parts[0].to_string(),
+            layout_file: parts[1].to_string(),
+            layout_text: parts[2].to_string(),
+            is_magic_windows: parts[3].eq_ignore_ascii_case("True"),
+            is_in_use: parts[4].eq_ignore_ascii_case("True"),
+        });
+    }
+
+    // Deterministic ordering by KLID so the UI renders identically across runs.
+    out.sort_by(|a, b| a.klid.cmp(&b.klid));
+    Ok(out)
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn list_all_installed_layouts() -> Result<Vec<super::InstalledLayoutInfo>, String> {
+    Err("Listing layouts requires Windows.".to_string())
 }
