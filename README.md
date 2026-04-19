@@ -8,7 +8,7 @@
 
 [![Download](https://img.shields.io/github/v/release/ObzCureDev/MagicWindows?label=Download&color=007aff)](https://github.com/ObzCureDev/MagicWindows/releases/latest)
 [![Build](https://github.com/ObzCureDev/Magicwindows/actions/workflows/build.yml/badge.svg)](https://github.com/ObzCureDev/Magicwindows/actions/workflows/build.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 ---
 
@@ -158,7 +158,14 @@ If a key doesn't produce the expected character, [open an issue](https://github.
 
 ## License
 
-[Apache License 2.0](LICENSE)
+Dual-licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <https://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <https://opensource.org/licenses/MIT>)
+
+at your option. Contributions are accepted under the same dual-license terms
+unless the contributor explicitly states otherwise, as is the Rust-ecosystem
+convention.
 
 ---
 
