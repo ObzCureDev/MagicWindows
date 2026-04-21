@@ -87,3 +87,18 @@ npm run tauri build
 - **Rust**: Follow standard Rust conventions (`cargo fmt`, `cargo clippy`)
 - **TypeScript/Svelte**: Use the project's existing formatting
 - **JSON layouts**: Follow the schema in `layouts/schema.json`
+
+## Dev environment tips
+
+### Claude Code + VSCode: Shift+Enter / "Enter types m"
+
+If you use Claude Code CLI inside VSCode's integrated terminal and hit this symptom pair — Shift+Enter does nothing, plain Enter inserts the letter `m` in the chat input — it's caused by an old `/terminal-setup` writing a broken VSCode user keybinding (`\u001b\r`, which Claude parses as Alt+Enter + a stray Ctrl+M). Unrelated to MagicWindows, but common enough to ship a one-shot fix:
+
+```powershell
+# Preview:
+.\scripts\Fix-ClaudeCodeShiftEnter.ps1 -DryRun
+# Apply:
+.\scripts\Fix-ClaudeCodeShiftEnter.ps1
+```
+
+The script edits `%APPDATA%\Code\User\keybindings.json` (user-level, no admin), backs up first, and replaces the bad sequence with `\n` (= Ctrl+J = `chat:newline`). Restart the VSCode terminal afterwards.
