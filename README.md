@@ -30,6 +30,50 @@ This happens because Apple and Windows use different keyboard layouts for the sa
 - **Bilingual UI** — Full French and English interface
 - **Open source** — Fully transparent, community-driven
 
+## Screenshots | Aperçu
+
+A quick tour of the installation flow — from detection to a working Apple layout on Windows.
+*Un aperçu du flux d'installation, de la détection à une disposition Apple fonctionnelle sur Windows.*
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/01-welcome.png" alt="Welcome screen" /><br />
+      <b>1. Welcome</b><br />
+      Auto-detect your keyboard (recommended) or pick a layout manually. Six layouts ship in-box: EN, FR, DE, ES, IT, UK.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/02-detect-keypress.png" alt="Keyboard detection" /><br />
+      <b>2. Keyboard detection</b><br />
+      Press the key that shows each displayed symbol on your physical Apple keyboard. Three keypresses are enough to identify your layout.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/03-detect-result.png" alt="Detected layout" /><br />
+      <b>3. Detected layout</b><br />
+      Confirmation with a full keyboard preview. The highlighted keys are the ones Windows was getting wrong — the new layout fixes all of them.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/04-installing.png" alt="Installing" /><br />
+      <b>4. Installing</b><br />
+      A single elevation prompt, then the DLL is copied to <code>System32</code> and registered. Usually 2–4&nbsp;seconds.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/05-done.png" alt="Done" /><br />
+      <b>5. Done</b><br />
+      Press <kbd>Win</kbd>+<kbd>Space</kbd> to switch to the new layout. A shortcut to Windows language settings is provided if the layout doesn't appear immediately.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/06-settings-modifiers.png" alt="Mac-style modifier keys" /><br />
+      <b>6. Mac-style modifiers (optional)</b><br />
+      From the Settings gear: remap Cmd↔Ctrl, Caps Lock→Ctrl, or Option↔Cmd so your macOS muscle memory carries over to Windows.
+    </td>
+  </tr>
+</table>
+
 ## Quick Start | Démarrage rapide
 
 ### Download | Télécharger
@@ -121,6 +165,10 @@ MagicWindows/
 │   └── src/keyboard/     # Detection, KLC generation, installation
 ├── layouts/              # Keyboard layout definitions (JSON)
 ├── scripts/              # PowerShell install/uninstall scripts
+├── docs/
+│   ├── screenshots/      # README screenshots (UI walkthrough)
+│   ├── CONTRIBUTING.md
+│   └── TROUBLESHOOTING.md
 └── .github/workflows/    # CI/CD
 ```
 
