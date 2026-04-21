@@ -714,7 +714,7 @@ Write-Host "Uninstall complete."
     run_elevated_ps(&install_dir, "uninstall_by_klid", &ps_script)?;
     log::info!("Layout KLID {klid} uninstalled");
 
-    if let Err(e) = purge_hkcu_klids(&install_dir, &[klid.clone()]) {
+    if let Err(e) = purge_hkcu_klids(&install_dir, std::slice::from_ref(&klid)) {
         log::warn!("Layout uninstalled but HKCU purge failed: {e}");
     }
     Ok(())

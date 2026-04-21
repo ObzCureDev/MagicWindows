@@ -1,16 +1,16 @@
-/// MagicWindows build script.
-///
-/// On Windows this script:
-///   1. Reads every `layouts/*.json` file (skipping `schema.json`).
-///   2. Generates a C source file for each layout using `klc-codegen`
-///      (shared with the main crate's tests — single source of truth).
-///   3. Compiles each C file into a keyboard layout DLL using `cl.exe` and
-///      `link.exe` from the MSVC toolchain that Rust itself requires.
-///   4. Copies the compiled DLLs to `target/kbd_dlls/` where Tauri can
-///      pick them up as bundled resources.
-///
-/// On non-Windows targets the DLL compilation step is skipped (the DLLs
-/// can only be installed on Windows anyway).
+//! MagicWindows build script.
+//!
+//! On Windows this script:
+//!   1. Reads every `layouts/*.json` file (skipping `schema.json`).
+//!   2. Generates a C source file for each layout using `klc-codegen`
+//!      (shared with the main crate's tests — single source of truth).
+//!   3. Compiles each C file into a keyboard layout DLL using `cl.exe` and
+//!      `link.exe` from the MSVC toolchain that Rust itself requires.
+//!   4. Copies the compiled DLLs to `target/kbd_dlls/` where Tauri can
+//!      pick them up as bundled resources.
+//!
+//! On non-Windows targets the DLL compilation step is skipped (the DLLs
+//! can only be installed on Windows anyway).
 
 fn main() {
     println!("cargo:rerun-if-changed=../layouts");
