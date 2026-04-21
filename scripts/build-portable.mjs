@@ -15,7 +15,13 @@ import archiver from "archiver";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(here);
 
-const releaseDir = join(repoRoot, "src-tauri", "target", "release");
+// Allow CI matrix builds to point at a target-specific release directory,
+// e.g. src-tauri/target/x86_64-pc-windows-msvc/release. Locally (no env var
+// set) we fall back to the default host-target release dir.
+const targetTriple = process.env.TAURI_TARGET_TRIPLE;
+const releaseDir = targetTriple
+  ? join(repoRoot, "src-tauri", "target", targetTriple, "release")
+  : join(repoRoot, "src-tauri", "target", "release");
 const exePath = join(releaseDir, "magicwindows.exe");
 const kbdDllsDir = join(repoRoot, "target", "kbd_dlls");
 const layoutsDir = join(repoRoot, "layouts");
@@ -25,7 +31,13 @@ mkdirSync(bundleDir, { recursive: true });
 
 const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
 const version = pkg.version || "dev";
-const outZip = join(bundleDir, `MagicWindows_${version}_portable.zip`);
+
+// When built per-target in CI, include an arch suffix so x64 and arm64
+// portables don't overwrite each other when uploaded to the same release.
+const archLabels = { x86_64: "x64", aarch64: "arm64" };
+const archRaw = targetTriple ? targetTriple.split("-")[0] : null;
+const archSuffix = archRaw ? `_${archLabels[archRaw] || archRaw}` : "";
+const outZip = join(bundleDir, `MagicWindows_${version}${archSuffix}_portable.zip`);
 
 for (const p of [exePath, kbdDllsDir, layoutsDir]) {
   if (!existsSync(p)) {

@@ -103,6 +103,11 @@ jobs:
       - name: Build Tauri app
         run: npm run tauri build -- ${{ matrix.tauri-args }}
 
+      - name: Build portable ZIP
+        env:
+          TAURI_TARGET_TRIPLE: ${{ matrix.rust-target }}
+        run: node scripts/build-portable.mjs
+
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v2
         with:
@@ -115,13 +120,20 @@ jobs:
           path: src-tauri/target/${{ matrix.rust-target }}/release/bundle/nsis/*.exe
           if-no-files-found: error
 
+      - name: Upload portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-${{ matrix.arch }}
+          path: src-tauri/target/${{ matrix.rust-target }}/release/bundle/portable/*.zip
+          if-no-files-found: error
+
   release:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - name: Download all installers
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -133,3 +145,4 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/**/*.exe
+            artifacts/**/*.zip
