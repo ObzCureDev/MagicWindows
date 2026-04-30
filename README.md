@@ -27,6 +27,7 @@ This happens because Apple and Windows use different keyboard layouts for the sa
 - **Native Windows integration** — Installs as a standard Windows keyboard layout, selectable in Settings alongside other keyboards
 - **Multi-keyboard friendly** — Use Win+Space to switch between your Apple layout and other keyboards
 - **Visual preview** — See exactly what each key will produce before installing
+- **Health check** — Verify each key matches the installed layout, with a one-click control-key regression probe
 - **Bilingual UI** — Full French and English interface
 - **Open source** — Fully transparent, community-driven
 

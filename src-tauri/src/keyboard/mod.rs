@@ -1,5 +1,6 @@
 pub mod detect;
 pub mod diagnostics;
+pub mod health_check;
 pub mod install;
 pub mod klc;
 pub mod scancode_map;

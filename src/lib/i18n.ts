@@ -102,6 +102,9 @@ export const translations: Record<string, Record<string, unknown>> = {
       badgeSystem: "System",
       badgeInUse: "In use",
       remove: "Remove",
+      healthCheck: "Run keyboard health check",
+      healthCheckHint:
+        "Verify every key on the installed layout produces the correct character.",
       reactivateInfo:
         "To re-enable: Windows Settings → Time & language → Language → [language] → Options → Add a keyboard.",
       confirmRemove: 'Remove "{name}"?',
@@ -165,6 +168,19 @@ export const translations: Record<string, Record<string, unknown>> = {
       license: "Licensed under Apache 2.0",
       github: "View on GitHub",
       back: "Back",
+    },
+    healthCheck: {
+      title: "Health Check",
+      subtitle: "Press every key — we'll verify each one matches the installed layout.",
+      passed: "Passed",
+      failed: "Failed",
+      untested: "Untested",
+      runControlKeys: "Run control-key check",
+      controlKeysOk: "Control keys OK — Enter, Shift+Enter, Tab, Backspace, Esc behave correctly.",
+      controlKeysFail: "Control-key regression detected: {keys}",
+      exportReport: "Export report (JSON)",
+      summary: "{passed} passed · {failed} failed · {untested} untested",
+      back: "Back to Settings",
     },
     common: {
       next: "Next",
@@ -287,6 +303,9 @@ export const translations: Record<string, Record<string, unknown>> = {
       badgeSystem: "Système",
       badgeInUse: "En usage",
       remove: "Retirer",
+      healthCheck: "Lancer le diagnostic clavier",
+      healthCheckHint:
+        "Vérifie que chaque touche de la disposition installée produit le bon caractère.",
       reactivateInfo:
         "Pour réactiver : Paramètres Windows → Heure et langue → Langue → [langue] → Options → Ajouter un clavier.",
       confirmRemove: "Retirer « {name} » ?",
@@ -350,6 +369,19 @@ export const translations: Record<string, Record<string, unknown>> = {
       license: "Licence Apache 2.0",
       github: "Voir sur GitHub",
       back: "Retour",
+    },
+    healthCheck: {
+      title: "Diagnostic clavier",
+      subtitle: "Appuyez sur chaque touche — on vérifie qu'elle correspond à la disposition installée.",
+      passed: "OK",
+      failed: "Échec",
+      untested: "Non testée",
+      runControlKeys: "Lancer le test des touches de contrôle",
+      controlKeysOk: "Touches de contrôle OK — Entrée, Maj+Entrée, Tab, Retour, Échap fonctionnent correctement.",
+      controlKeysFail: "Régression détectée sur les touches de contrôle : {keys}",
+      exportReport: "Exporter le rapport (JSON)",
+      summary: "{passed} OK · {failed} échec · {untested} non testées",
+      back: "Retour aux paramètres",
     },
     common: {
       next: "Suivant",

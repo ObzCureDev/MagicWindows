@@ -13,6 +13,7 @@
   import About from "./pages/About.svelte";
   import Modifiers from "./pages/Modifiers.svelte";
   import Settings from "./pages/Settings.svelte";
+  import HealthCheck from "./pages/HealthCheck.svelte";
 
   function setLang(lang: "en" | "fr") {
     appState.lang = lang;
@@ -147,6 +148,8 @@
   <Modifiers />
 {:else if appState.page === "settings"}
   <Settings />
+{:else if appState.page === "healthCheck"}
+  <HealthCheck />
 {/if}
 
 <style>
