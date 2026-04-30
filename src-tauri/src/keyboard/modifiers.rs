@@ -5,7 +5,7 @@
 //! installer in install.rs.
 
 use super::scancode_map::{
-    derive_state, parse_scancode_map, ModifierState, ModifierToggles,
+    derive_state, parse_scancode_map, ModifierState, ModifierToggles, RawScancodePair,
 };
 
 #[cfg(target_os = "windows")]
@@ -56,19 +56,28 @@ pub fn read_scancode_map() -> Result<ModifierState, String> {
     Err("Modifier remapping requires Windows.".to_string())
 }
 
+/// Write an arbitrary list of `RawScancodePair`s to the Scancode Map registry
+/// value via an elevated PowerShell call. An empty `pairs` slice deletes the
+/// value rather than writing a header-only blob (matching Windows convention).
+///
+/// This is the single elevated-write entry point shared by every subsystem
+/// that wants to persist Scancode Map pairs (modifier toggles, F12 remap,
+/// future remap modules). Each subsystem is responsible for composing the
+/// full pair list (preserving foreign pairs it doesn't own) before calling
+/// in here.
 #[cfg(target_os = "windows")]
-#[tauri::command]
-pub fn write_scancode_map(toggles: ModifierToggles) -> Result<(), String> {
-    use super::scancode_map::build_scancode_map;
+pub fn write_raw_pairs_elevated(pairs: &[RawScancodePair]) -> Result<(), String> {
+    use super::scancode_map::build_scancode_map_from_pairs;
     use crate::keyboard::install::get_install_dir;
     use std::fs;
 
-    let bytes = build_scancode_map(&toggles);
     let install_dir = get_install_dir();
     fs::create_dir_all(&install_dir)
         .map_err(|e| format!("Failed to create install dir: {e}"))?;
 
-    // Empty bytes = user wants no mappings. Delegate to clear_scancode_map.
+    let bytes = build_scancode_map_from_pairs(pairs);
+
+    // Empty bytes = no mappings remain. Delete the registry value entirely.
     if bytes.is_empty() {
         return delete_scancode_map_value(&install_dir);
     }
@@ -100,6 +109,31 @@ Write-Host "Scancode Map written ($($bytes.Length) bytes)."
 
     super::install::run_elevated_ps_for_modifiers(&install_dir, "scancode_write", &script)?;
     Ok(())
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn write_scancode_map(toggles: ModifierToggles) -> Result<(), String> {
+    use super::scancode_map::{is_modifier_source, modifier_pairs_from_toggles};
+
+    // Read the current pair list and PRESERVE every pair we don't own (e.g.
+    // F12 remap entries). Without this, applying a modifier toggle would
+    // clobber any other Scancode Map entry that another subsystem has set.
+    let state = read_scancode_map()?;
+    let preserved: Vec<RawScancodePair> = state
+        .raw_entries
+        .into_iter()
+        .filter(|p| !is_modifier_source(&p.old_code))
+        .collect();
+
+    let new_modifier_pairs = modifier_pairs_from_toggles(&toggles);
+
+    let combined: Vec<RawScancodePair> = preserved
+        .into_iter()
+        .chain(new_modifier_pairs)
+        .collect();
+
+    write_raw_pairs_elevated(&combined)
 }
 
 #[cfg(target_os = "windows")]

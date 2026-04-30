@@ -175,6 +175,8 @@ pub fn run() {
             crate::keyboard::modifiers::read_scancode_map,
             crate::keyboard::modifiers::write_scancode_map,
             crate::keyboard::modifiers::clear_scancode_map,
+            crate::keyboard::f12_remap::f12_remap_get,
+            crate::keyboard::f12_remap::f12_remap_set,
             crate::keyboard::install::list_all_installed_layouts,
             crate::keyboard::install::uninstall_by_klid,
             crate::keyboard::diagnostics::collect_diagnostics,

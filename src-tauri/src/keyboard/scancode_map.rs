@@ -48,48 +48,101 @@ const LALT:  [u8; 2] = [0x38, 0x00];
 const RALT:  [u8; 2] = [0x38, 0xE0];
 const CAPS:  [u8; 2] = [0x3A, 0x00];
 
-/// Encode a single mapping: pressing `old` causes the OS to report `new`.
-fn entry(new: [u8; 2], old: [u8; 2]) -> [u8; 4] {
-    [new[0], new[1], old[0], old[1]]
+/// Format a 2-byte little-endian scancode as a 4-hex-char uppercase string
+/// (matching the format used by `RawScancodePair`).
+fn bytes_to_hex_pair(b: [u8; 2]) -> String {
+    format!("{:02X}{:02X}", b[0], b[1])
+}
+
+/// Parse a 4-hex-char little-endian scancode string back to its 2 bytes.
+fn hex_pair_to_bytes(s: &str) -> Result<[u8; 2], String> {
+    if s.len() != 4 {
+        return Err(format!("expected 4 hex chars, got {:?}", s));
+    }
+    let lo = u8::from_str_radix(&s[0..2], 16).map_err(|e| format!("bad lo nibble: {e}"))?;
+    let hi = u8::from_str_radix(&s[2..4], 16).map_err(|e| format!("bad hi nibble: {e}"))?;
+    Ok([lo, hi])
+}
+
+/// Build a `RawScancodePair` from raw new/old byte arrays.
+fn raw_pair(new: [u8; 2], old: [u8; 2]) -> RawScancodePair {
+    RawScancodePair {
+        new_code: bytes_to_hex_pair(new),
+        old_code: bytes_to_hex_pair(old),
+    }
+}
+
+/// Return the list of `RawScancodePair`s produced by a given toggle selection.
+/// Pure: no I/O, no byte serialization. The order matches the byte-emission
+/// order of `build_scancode_map` so a round-trip is byte-identical.
+pub fn modifier_pairs_from_toggles(toggles: &ModifierToggles) -> Vec<RawScancodePair> {
+    let mut pairs: Vec<RawScancodePair> = Vec::new();
+
+    if toggles.swap_cmd_ctrl_left {
+        pairs.push(raw_pair(LCTRL, LWIN));   // LWin pressed → LCtrl emitted
+        pairs.push(raw_pair(LWIN,  LCTRL));  // LCtrl pressed → LWin emitted
+    }
+    if toggles.swap_cmd_ctrl_right {
+        pairs.push(raw_pair(RCTRL, RWIN));
+        pairs.push(raw_pair(RWIN,  RCTRL));
+    }
+    if toggles.caps_to_ctrl {
+        pairs.push(raw_pair(LCTRL, CAPS));   // one-way: CapsLock → LCtrl
+    }
+    if toggles.swap_option_cmd {
+        pairs.push(raw_pair(LALT, LWIN));
+        pairs.push(raw_pair(LWIN, LALT));
+        pairs.push(raw_pair(RALT, RWIN));
+        pairs.push(raw_pair(RWIN, RALT));
+    }
+
+    pairs
+}
+
+/// Returns true when `old_code` (4-hex-char little-endian source scancode)
+/// belongs to a key whose Scancode-Map entries are managed by the modifier
+/// toggles subsystem. Used by other write paths (e.g. F12 remap) to avoid
+/// clobbering modifier pairs and vice versa.
+pub fn is_modifier_source(old_code: &str) -> bool {
+    const MODIFIER_SOURCES: &[[u8; 2]] = &[LCTRL, RCTRL, LWIN, RWIN, LALT, RALT, CAPS];
+    let upper = old_code.to_ascii_uppercase();
+    MODIFIER_SOURCES
+        .iter()
+        .any(|b| bytes_to_hex_pair(*b) == upper)
+}
+
+/// Serialize an arbitrary list of `RawScancodePair`s into the binary Scancode
+/// Map registry value. Returns an EMPTY vec when `pairs` is empty — the caller
+/// should DELETE the registry value rather than write a header-only blob.
+pub fn build_scancode_map_from_pairs(pairs: &[RawScancodePair]) -> Vec<u8> {
+    if pairs.is_empty() {
+        return Vec::new();
+    }
+
+    let count = (pairs.len() + 1) as u32; // +1 for the null terminator
+    let mut buf = Vec::with_capacity(8 + 4 + pairs.len() * 4 + 4);
+    buf.extend_from_slice(&[0u8; 8]);                  // header
+    buf.extend_from_slice(&count.to_le_bytes());       // entry count
+    for p in pairs {
+        // Strings produced by us are always valid 4-hex-char codes. If a caller
+        // hand-crafts a malformed pair, fall back to zero bytes rather than
+        // panicking inside the elevated-write path.
+        let new_b = hex_pair_to_bytes(&p.new_code).unwrap_or([0, 0]);
+        let old_b = hex_pair_to_bytes(&p.old_code).unwrap_or([0, 0]);
+        buf.extend_from_slice(&[new_b[0], new_b[1], old_b[0], old_b[1]]);
+    }
+    buf.extend_from_slice(&[0u8; 4]);                  // null terminator
+    buf
 }
 
 /// Build the binary Scancode Map value from the user's toggle selection.
 /// Returns an EMPTY vec when no toggles are active — the caller should DELETE
 /// the registry value rather than write a header-only blob.
+///
+/// Thin wrapper kept for backward compatibility — equivalent to
+/// `build_scancode_map_from_pairs(&modifier_pairs_from_toggles(toggles))`.
 pub fn build_scancode_map(toggles: &ModifierToggles) -> Vec<u8> {
-    let mut entries: Vec<[u8; 4]> = Vec::new();
-
-    if toggles.swap_cmd_ctrl_left {
-        entries.push(entry(LCTRL, LWIN));   // LWin pressed → LCtrl emitted
-        entries.push(entry(LWIN,  LCTRL));  // LCtrl pressed → LWin emitted
-    }
-    if toggles.swap_cmd_ctrl_right {
-        entries.push(entry(RCTRL, RWIN));
-        entries.push(entry(RWIN,  RCTRL));
-    }
-    if toggles.caps_to_ctrl {
-        entries.push(entry(LCTRL, CAPS));   // one-way: CapsLock → LCtrl
-    }
-    if toggles.swap_option_cmd {
-        entries.push(entry(LALT, LWIN));
-        entries.push(entry(LWIN, LALT));
-        entries.push(entry(RALT, RWIN));
-        entries.push(entry(RWIN, RALT));
-    }
-
-    if entries.is_empty() {
-        return Vec::new();
-    }
-
-    let count = (entries.len() + 1) as u32; // +1 for the null terminator
-    let mut buf = Vec::with_capacity(8 + 4 + entries.len() * 4 + 4);
-    buf.extend_from_slice(&[0u8; 8]);                  // header
-    buf.extend_from_slice(&count.to_le_bytes());       // entry count
-    for e in &entries {
-        buf.extend_from_slice(e);
-    }
-    buf.extend_from_slice(&[0u8; 4]);                  // null terminator
-    buf
+    build_scancode_map_from_pairs(&modifier_pairs_from_toggles(toggles))
 }
 
 /// Parse a raw Scancode Map binary into a list of (new, old) pairs.
@@ -243,6 +296,54 @@ mod build_tests {
         expected.extend_from_slice(&[0x5C, 0xE0, 0x38, 0xE0]); // RWin ← RAlt
         expected.extend_from_slice(&terminator());
         assert_eq!(bytes, expected);
+    }
+
+    /// The pure pair-based pipeline (`build_scancode_map_from_pairs ∘
+    /// modifier_pairs_from_toggles`) MUST emit the exact same bytes as the
+    /// original `build_scancode_map(toggles)`. This guards the refactor — if
+    /// it ever drifts, every existing on-disk Scancode Map blob would change
+    /// out from under users.
+    #[test]
+    fn pair_pipeline_is_byte_identical_to_legacy_for_all_toggle_combos() {
+        for n in 0u8..16 {
+            let toggles = ModifierToggles {
+                swap_cmd_ctrl_left:  (n & 0b0001) != 0,
+                swap_cmd_ctrl_right: (n & 0b0010) != 0,
+                caps_to_ctrl:        (n & 0b0100) != 0,
+                swap_option_cmd:     (n & 0b1000) != 0,
+            };
+            let legacy_bytes = build_scancode_map(&toggles);
+            let via_pairs = build_scancode_map_from_pairs(&modifier_pairs_from_toggles(&toggles));
+            assert_eq!(
+                legacy_bytes, via_pairs,
+                "byte mismatch for toggles {:?}", toggles
+            );
+        }
+    }
+
+    #[test]
+    fn is_modifier_source_recognizes_known_modifiers() {
+        // All modifier source scancodes the toggles emit/consume.
+        assert!(is_modifier_source("1D00")); // LCTRL
+        assert!(is_modifier_source("1DE0")); // RCTRL
+        assert!(is_modifier_source("5BE0")); // LWIN
+        assert!(is_modifier_source("5CE0")); // RWIN
+        assert!(is_modifier_source("3800")); // LALT
+        assert!(is_modifier_source("38E0")); // RALT
+        assert!(is_modifier_source("3A00")); // CAPS
+    }
+
+    #[test]
+    fn is_modifier_source_is_case_insensitive() {
+        assert!(is_modifier_source("5be0"));
+        assert!(is_modifier_source("5Be0"));
+    }
+
+    #[test]
+    fn is_modifier_source_rejects_non_modifier_scancodes() {
+        assert!(!is_modifier_source("5800")); // F12 / Eject
+        assert!(!is_modifier_source("0000"));
+        assert!(!is_modifier_source("21E0")); // Calculator
     }
 }
 
