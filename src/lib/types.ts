@@ -43,7 +43,7 @@ export interface DetectionResult {
   receivedChar: string;
 }
 
-export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "test" | "done" | "about" | "modifiers" | "settings";
+export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "test" | "done" | "about" | "modifiers" | "settings" | "healthCheck";
 export type Lang = "en" | "fr";
 export type Theme = "light" | "dark" | "system";
 
@@ -115,4 +115,47 @@ export interface InstalledLayoutInfo {
   isMagicWindows: boolean;
   /** True when this KLID appears in HKCU\Keyboard Layout\Preload. */
   isInUse: boolean;
+}
+
+// ── Health Check (post-install verification)
+
+export type KeyStatus = "untested" | "passed" | "failed";
+
+export type ModState = {
+  shift: boolean;
+  altgr: boolean;   // event.getModifierState('AltGraph')
+  capsLock: boolean;
+};
+
+export interface HealthCheckResult {
+  /** Lowercase 2-hex scancode, e.g. "1e" for A on US/QWERTY position */
+  scancode: string;
+  modifiers: ModState;
+  /** 4-hex-char Unicode codepoint expected from the layout JSON, e.g. "0040" */
+  expectedCodepoint: string;
+  /** What the keystroke actually produced (single char, possibly empty) */
+  receivedChar: string;
+  status: KeyStatus;
+  /** ms since session start, for ordering */
+  at: number;
+}
+
+export interface HealthCheckSession {
+  layoutId: string;
+  /** Installed KLID the probe ran against (e.g. "a000040c") */
+  klid: string;
+  startedAt: string;       // ISO timestamp
+  results: HealthCheckResult[];
+}
+
+/**
+ * Set by Settings when launching the health check.
+ * The page reads this from appState — it is required (page redirects to
+ * Settings if null).
+ */
+export interface HealthCheckTarget {
+  /** Layout JSON id, e.g. "apple-fr-azerty" */
+  layoutId: string;
+  /** Installed KLID, e.g. "a000040c" — comes from InstalledLayoutInfo, NOT layout.localeId */
+  klid: string;
 }

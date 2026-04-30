@@ -1,4 +1,4 @@
-import type { Page, Lang, Theme, LayoutMeta } from "./types";
+import type { Page, Lang, Theme, LayoutMeta, HealthCheckTarget } from "./types";
 
 function detectLang(): Lang {
   const nav = globalThis.navigator;
@@ -17,6 +17,7 @@ class AppState {
   installing = $state(false);
   lastInstallMs = $state<number | null>(null);
   detectionFailedMessage = $state<string | null>(null);
+  healthCheckTarget = $state<HealthCheckTarget | null>(null);
 }
 
 export const appState = new AppState();
