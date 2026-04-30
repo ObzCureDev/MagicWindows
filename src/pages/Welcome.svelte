@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
-  import type { LayoutMeta } from "../lib/types";
+  import type { LayoutMeta, AppleKeyboardInfo } from "../lib/types";
 
   let loading = $state(true);
 
@@ -16,6 +16,20 @@
       appState.error = String(err);
     } finally {
       loading = false;
+    }
+
+    // Apple HID probe — surfaces the BT pairing flow if no Apple keyboard is
+    // present. Skipped if the user previously chose "I'll pair later".
+    if (appState.skippedPairing) return;
+    try {
+      const kbds = await invoke<AppleKeyboardInfo[]>("enumerate_apple_keyboards");
+      appState.appleKeyboardConnected = kbds.length > 0;
+      if (!appState.appleKeyboardConnected) {
+        appState.page = "bluetoothPairing";
+      }
+    } catch {
+      // Silently fall through — never block the existing flow.
+      appState.appleKeyboardConnected = null;
     }
   });
 
