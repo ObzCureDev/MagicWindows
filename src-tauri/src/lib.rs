@@ -178,6 +178,7 @@ pub fn run() {
             crate::keyboard::install::list_all_installed_layouts,
             crate::keyboard::install::uninstall_by_klid,
             crate::keyboard::diagnostics::collect_diagnostics,
+            crate::keyboard::hardware::enumerate_apple_keyboards,
             crate::keyboard::health_check::health_check_control_keys,
         ])
         .run(tauri::generate_context!())
