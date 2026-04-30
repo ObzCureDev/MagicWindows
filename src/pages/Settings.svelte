@@ -6,6 +6,23 @@
   import type { InstalledLayoutInfo } from "../lib/types";
   import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
 
+  // Maps an installed Apple layout DLL filename to the bundled layout JSON id
+  // used by the Health Check page. Only MagicWindows-installed layouts have a
+  // known JSON to compare keystrokes against — the helper returns "" for any
+  // other DLL.
+  const DLL_TO_LAYOUT_ID: Record<string, string> = {
+    "kbdaplus.dll": "apple-us-qwerty",
+    "kbdaplfr.dll": "apple-fr-azerty",
+    "kbdapluk.dll": "apple-uk-qwerty",
+    "kbdaplde.dll": "apple-de-qwertz",
+    "kbdaples.dll": "apple-es-qwerty",
+    "kbdaplit.dll": "apple-it-qwerty",
+  };
+
+  function layoutIdFromDll(dllName: string): string {
+    return DLL_TO_LAYOUT_ID[dllName.toLowerCase()] ?? "";
+  }
+
   let allLayouts = $state<InstalledLayoutInfo[]>([]);
   let loading = $state(true);
   let listError = $state<string | null>(null);
@@ -118,6 +135,23 @@
               </div>
             </div>
             <div class="layout-row__actions">
+              {#if layout.isMagicWindows && layoutIdFromDll(layout.layoutFile)}
+                <button
+                  class="btn btn-secondary btn-sm"
+                  title={t(appState.lang, "settings.healthCheckHint")}
+                  onclick={() => {
+                    // Defense in depth: even though the surrounding {#if layoutIdFromDll(...)}
+                    // hides this button for unknown DLLs, the click handler also bails out
+                    // rather than navigate to HealthCheck with an empty layoutId.
+                    const layoutId = layoutIdFromDll(layout.layoutFile);
+                    if (!layoutId) return;
+                    appState.healthCheckTarget = { layoutId, klid: layout.klid };
+                    appState.page = "healthCheck";
+                  }}
+                >
+                  {t(appState.lang, "settings.healthCheck")}
+                </button>
+              {/if}
               <button
                 class="btn btn-danger btn-sm"
                 onclick={() => requestRemove(layout)}

@@ -102,6 +102,9 @@ export const translations: Record<string, Record<string, unknown>> = {
       badgeSystem: "System",
       badgeInUse: "In use",
       remove: "Remove",
+      healthCheck: "Run keyboard health check",
+      healthCheckHint:
+        "Verify every key on the installed layout produces the correct character.",
       reactivateInfo:
         "To re-enable: Windows Settings → Time & language → Language → [language] → Options → Add a keyboard.",
       confirmRemove: 'Remove "{name}"?',
@@ -300,6 +303,9 @@ export const translations: Record<string, Record<string, unknown>> = {
       badgeSystem: "Système",
       badgeInUse: "En usage",
       remove: "Retirer",
+      healthCheck: "Lancer le diagnostic clavier",
+      healthCheckHint:
+        "Vérifie que chaque touche de la disposition installée produit le bon caractère.",
       reactivateInfo:
         "Pour réactiver : Paramètres Windows → Heure et langue → Langue → [langue] → Options → Ajouter un clavier.",
       confirmRemove: "Retirer « {name} » ?",
