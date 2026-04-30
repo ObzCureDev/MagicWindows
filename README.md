@@ -28,6 +28,8 @@ This happens because Apple and Windows use different keyboard layouts for the sa
 - **Multi-keyboard friendly** — Use Win+Space to switch between your Apple layout and other keyboards
 - **Visual preview** — See exactly what each key will produce before installing
 - **Health check** — Verify each key matches the installed layout, with a one-click control-key regression probe
+- **F12 / Eject remap** — Apple's F12 is Eject (useless under Windows). Choose what F12 should do instead: Calculator, Search, Mail, Apps menu, Volume mute, or disabled
+- **Bluetooth pairing assistant** — On first launch, if no Apple keyboard is detected, the app opens Bluetooth settings and watches for a new Magic Keyboard
 - **Bilingual UI** — Full French and English interface
 - **Open source** — Fully transparent, community-driven
 
