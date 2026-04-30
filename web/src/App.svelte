@@ -1,25 +1,37 @@
 <script lang="ts">
-  // Hello-world placeholder; routes wired in Task 5.
+  import { parseHash } from "./lib/router";
+  import Home from "./routes/Home.svelte";
+  import Preview from "./routes/Preview.svelte";
+  import Desktop from "./routes/Desktop.svelte";
+
+  let route = $state(parseHash(window.location.hash));
+
+  function onHashChange() {
+    route = parseHash(window.location.hash);
+  }
+
+  $effect(() => {
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  });
 </script>
 
-<main>
-  <h1>MagicWindows Web</h1>
-  <p>Coming soon.</p>
-</main>
+<div class="page">
+  {#if route.kind === "home"}
+    <Home />
+  {:else if route.kind === "preview"}
+    <Preview layoutId={route.layoutId} />
+  {:else if route.kind === "desktop"}
+    <Desktop />
+  {:else}
+    <Home />
+  {/if}
+</div>
 
 <style>
-  main {
-    max-width: 720px;
-    margin: 4rem auto;
-    padding: 0 1.5rem;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: #1a1a1c;
-  }
-  h1 {
-    font-size: 2rem;
-    margin: 0 0 0.5rem;
-  }
-  p {
-    color: #6e6e73;
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 </style>

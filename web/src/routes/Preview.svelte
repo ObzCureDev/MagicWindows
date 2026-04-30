@@ -1,0 +1,179 @@
+<script lang="ts">
+  import { KeyboardVisual } from "@magicwindows/keyboard-visual";
+  import { layouts, layoutIds } from "../lib/layouts";
+  import { downloadFor } from "../lib/manifest";
+  import { navigate } from "../lib/router";
+
+  interface Props {
+    layoutId: string;
+  }
+  let { layoutId }: Props = $props();
+
+  let activeLayer = $state<"base" | "shift" | "altgr" | "altgrShift">("base");
+
+  const card = $derived(layouts[layoutId]);
+  const download = $derived(card ? downloadFor(layoutId) : null);
+
+  $effect(() => {
+    if (!card) navigate({ kind: "home" });
+  });
+
+  function pickLayout(id: string) {
+    navigate({ kind: "preview", layoutId: id });
+  }
+
+  const layers = [
+    { k: "base" as const, label: "Base" },
+    { k: "shift" as const, label: "Shift" },
+    { k: "altgr" as const, label: "AltGr" },
+    { k: "altgrShift" as const, label: "AltGr+Shift" },
+  ];
+</script>
+
+{#if card}
+  <header class="head">
+    <a class="back" href="#/">&larr; All layouts</a>
+    <h1>{card.displayName}</h1>
+    <p class="blurb">{card.blurb}</p>
+  </header>
+
+  <nav class="switcher" aria-label="Choose a layout">
+    {#each layoutIds as id}
+      <button
+        type="button"
+        class:active={id === layoutId}
+        onclick={() => pickLayout(id)}
+      >
+        {layouts[id].displayName}
+      </button>
+    {/each}
+  </nav>
+
+  <div class="layer-toggle" role="group" aria-label="Modifier layer">
+    {#each layers as opt}
+      <button
+        type="button"
+        class:active={activeLayer === opt.k}
+        onclick={() => (activeLayer = opt.k)}
+      >
+        {opt.label}
+      </button>
+    {/each}
+  </div>
+
+  <div class="preview-wrap">
+    <KeyboardVisual layout={card.layout} {activeLayer} />
+  </div>
+
+  <div class="download-bar">
+    {#if download}
+      <a class="download-btn" href={download.url} download>
+        Download for Windows ({(download.size / 1024).toFixed(0)} KB)
+      </a>
+      <p class="dl-meta">SHA-256: <code>{download.sha256.slice(0, 16)}…</code></p>
+    {:else}
+      <p class="dl-unavailable">Download temporarily unavailable. Please try again later.</p>
+    {/if}
+  </div>
+{/if}
+
+<style>
+  .head {
+    max-width: 1080px;
+    margin: 2rem auto 1rem;
+    padding: 0 1.5rem;
+  }
+  .back {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .back:hover { text-decoration: underline; }
+  .head h1 {
+    font-size: 1.8rem;
+    margin: 0.5rem 0 0.25rem;
+  }
+  .blurb {
+    color: #6e6e73;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .switcher {
+    max-width: 1080px;
+    margin: 1rem auto;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .switcher button,
+  .layer-toggle button {
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #d2d2d7;
+    background: #ffffff;
+    color: #1a1a1c;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 100ms ease, border-color 100ms ease;
+  }
+  .switcher button:hover,
+  .layer-toggle button:hover { background: #f3f3f7; }
+  .switcher button.active,
+  .layer-toggle button.active {
+    background: #0066cc;
+    border-color: #0066cc;
+    color: #ffffff;
+  }
+
+  .layer-toggle {
+    max-width: 1080px;
+    margin: 0.5rem auto 1rem;
+    padding: 0 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .preview-wrap {
+    max-width: 1080px;
+    margin: 1rem auto;
+    padding: 0 1rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .download-bar {
+    max-width: 1080px;
+    margin: 1.5rem auto 4rem;
+    padding: 0 1.5rem;
+    text-align: center;
+  }
+  .download-btn {
+    display: inline-block;
+    padding: 0.85rem 1.75rem;
+    background: #0066cc;
+    color: #ffffff;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,102,204,0.25);
+    transition: transform 100ms ease, box-shadow 100ms ease;
+  }
+  .download-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,102,204,0.32);
+  }
+  .dl-meta {
+    color: #8e8e93;
+    font-size: 0.8rem;
+    margin: 0.5rem 0 0;
+  }
+  .dl-meta code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+  }
+  .dl-unavailable {
+    color: #b91c1c;
+    font-size: 0.95rem;
+  }
+</style>
