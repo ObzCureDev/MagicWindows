@@ -9,10 +9,6 @@
 //!
 //! A scancode is 2 bytes: low byte first, then high byte (00 = normal, E0 = extended).
 
-// Suppress dead-code warnings during multi-task implementation. Tasks 4-6 wire
-// these symbols into the Tauri command layer; remove the attribute once done.
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

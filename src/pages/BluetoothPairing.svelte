@@ -12,6 +12,7 @@
 
   let intervalId: number | null = null;
   let timeoutId: number | null = null;
+  let successTimerId: number | null = null;
 
   const POLL_MS = 2000;
   const TIMEOUT_MS = 5 * 60 * 1000;
@@ -19,6 +20,7 @@
   function stopPolling() {
     if (intervalId !== null) { clearInterval(intervalId); intervalId = null; }
     if (timeoutId !== null) { clearTimeout(timeoutId); timeoutId = null; }
+    if (successTimerId !== null) { clearTimeout(successTimerId); successTimerId = null; }
     polling = false;
   }
 
@@ -45,7 +47,7 @@
         detectedNow = true;
         appState.appleKeyboardConnected = true;
         // Brief beat so user sees the success state, then advance.
-        setTimeout(() => { appState.page = "detect"; }, 800);
+        successTimerId = window.setTimeout(() => { appState.page = "detect"; }, 800);
       }
     }, POLL_MS);
   }
@@ -104,5 +106,5 @@
   .status { min-height: 1.4em; }
   .ok { color: var(--color-success); }
   .warn { color: var(--color-warning, var(--color-danger)); }
-  .muted { color: var(--text-muted, #888); }
+  .muted { color: var(--color-text-muted); }
 </style>
