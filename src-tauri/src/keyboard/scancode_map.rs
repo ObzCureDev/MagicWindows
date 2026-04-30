@@ -135,8 +135,11 @@ pub fn build_scancode_map_from_pairs(pairs: &[RawScancodePair]) -> Vec<u8> {
 /// Returns an EMPTY vec when no toggles are active — the caller should DELETE
 /// the registry value rather than write a header-only blob.
 ///
-/// Thin wrapper kept for backward compatibility — equivalent to
-/// `build_scancode_map_from_pairs(&modifier_pairs_from_toggles(toggles))`.
+/// Thin wrapper used by the byte-identical refactor test that compares the
+/// legacy toggle-only pipeline against `build_scancode_map_from_pairs`.
+/// Gated `cfg(test)` because production callers (modifier-remap write path)
+/// now go through the pair-level API directly.
+#[cfg(test)]
 pub fn build_scancode_map(toggles: &ModifierToggles) -> Vec<u8> {
     build_scancode_map_from_pairs(&modifier_pairs_from_toggles(toggles))
 }
