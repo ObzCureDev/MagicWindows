@@ -16,7 +16,11 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ControlKeyResult {
-    pub name: String, // "Enter", "Shift+Enter", ...
+    /// Stable identifier — "enter", "shift_enter", "tab", "backspace",
+    /// "escape". The frontend translates these via `healthCheck.controlKey.*`
+    /// i18n keys; we deliberately don't return human strings so the FR UI
+    /// doesn't end up mixing English and French names in the same sentence.
+    pub name: String,
     pub vk: u8,
     pub shift: bool,
     pub passed: bool,
@@ -61,7 +65,7 @@ public class Probe {{
   [DllImport("user32.dll")]
   public static extern uint MapVirtualKeyEx(uint code, uint mapType, IntPtr hkl);
 
-  public static string Probe(IntPtr hkl, uint vk, bool shift) {{
+  public static string Run(IntPtr hkl, uint vk, bool shift) {{
     // MAPVK_VK_TO_VSC_EX = 4 (returns the scancode, including extended bit)
     uint sc = MapVirtualKeyEx(vk, 4, hkl);
     var state = new byte[256];
@@ -83,11 +87,11 @@ if ($hkl -eq [IntPtr]::Zero) {{
 
 $o = New-Object PSObject -Property @{{
   klid = '{klid}'
-  enter = [Probe]::Probe($hkl, 0x0D, $false)
-  shiftEnter = [Probe]::Probe($hkl, 0x0D, $true)
-  tab = [Probe]::Probe($hkl, 0x09, $false)
-  back = [Probe]::Probe($hkl, 0x08, $false)
-  esc = [Probe]::Probe($hkl, 0x1B, $false)
+  enter = [Probe]::Run($hkl, 0x0D, $false)
+  shiftEnter = [Probe]::Run($hkl, 0x0D, $true)
+  tab = [Probe]::Run($hkl, 0x09, $false)
+  back = [Probe]::Run($hkl, 0x08, $false)
+  esc = [Probe]::Run($hkl, 0x1B, $false)
 }}
 $o | ConvertTo-Json -Compress
 "#
@@ -112,6 +116,19 @@ $o | ConvertTo-Json -Compress
     }
 
     let json = String::from_utf8_lossy(&output.stdout);
+    let results = parse_probe_output(&json)?;
+    let all_passed = results.iter().all(|r| r.passed);
+
+    Ok(ControlKeyReport {
+        klid,
+        results,
+        all_passed,
+    })
+}
+
+/// Parse the JSON the PowerShell probe writes and turn it into the public
+/// report shape. Pure — no I/O, fully unit-testable.
+fn parse_probe_output(json: &str) -> Result<Vec<ControlKeyResult>, String> {
     let parsed: serde_json::Value = serde_json::from_str(json.trim())
         .map_err(|e| format!("parse probe output: {e}\nraw: {json}"))?;
 
@@ -134,24 +151,50 @@ $o | ConvertTo-Json -Compress
         }
     };
 
-    let results = vec![
-        mk("Enter", 0x0D, false, "enter"),
-        mk("Shift+Enter", 0x0D, true, "shiftEnter"),
-        mk("Tab", 0x09, false, "tab"),
-        mk("Backspace", 0x08, false, "back"),
-        mk("Escape", 0x1B, false, "esc"),
-    ];
-    let all_passed = results.iter().all(|r| r.passed);
-
-    Ok(ControlKeyReport {
-        klid,
-        results,
-        all_passed,
-    })
+    Ok(vec![
+        mk("enter", 0x0D, false, "enter"),
+        mk("shift_enter", 0x0D, true, "shiftEnter"),
+        mk("tab", 0x09, false, "tab"),
+        mk("backspace", 0x08, false, "back"),
+        mk("escape", 0x1B, false, "esc"),
+    ])
 }
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub fn health_check_control_keys(_klid: String) -> Result<ControlKeyReport, String> {
     Err("health_check is only available on Windows".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_empty_means_all_pass() {
+        let json = r#"{"klid":"a000040c","enter":"","shiftEnter":"","tab":"","back":"","esc":""}"#;
+        let r = parse_probe_output(json).unwrap();
+        assert_eq!(r.len(), 5);
+        assert!(r.iter().all(|x| x.passed));
+        assert!(r.iter().all(|x| x.produced.is_empty()));
+    }
+
+    #[test]
+    fn shift_enter_emitting_lf_is_a_fail() {
+        // The pre-a8f8b7f regression: Shift+Enter produced 0x000A.
+        let json = r#"{"klid":"a000040c","enter":"\r","shiftEnter":"\n","tab":"","back":"","esc":""}"#;
+        let r = parse_probe_output(json).unwrap();
+        let shift_enter = r.iter().find(|x| x.name == "shift_enter").unwrap();
+        assert!(!shift_enter.passed);
+        assert_eq!(shift_enter.produced, "000A");
+        let enter = r.iter().find(|x| x.name == "enter").unwrap();
+        assert!(!enter.passed);
+        assert_eq!(enter.produced, "000D");
+    }
+
+    #[test]
+    fn invalid_json_is_propagated() {
+        let r = parse_probe_output("not json");
+        assert!(r.is_err());
+    }
 }
