@@ -38,4 +38,4 @@ F12/Eject remap, post-install health check, one-click uninstall UI.
 
 REPORT A BUG
 ------------
-  https://github.com/ObzCureDev/Magicwindows/issues
+  https://github.com/ObzCureDev/MagicWindows/issues

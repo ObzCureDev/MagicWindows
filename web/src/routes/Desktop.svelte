@@ -56,7 +56,7 @@
 </section>
 
 <section class="dl">
-  <a class="download-btn" href="https://github.com/ObzCureDev/Magicwindows/releases/latest" target="_blank" rel="noopener">
+  <a class="download-btn" href="https://github.com/ObzCureDev/MagicWindows/releases/latest" target="_blank" rel="noopener">
     Download the desktop app
   </a>
   <p class="dl-note">Latest release on GitHub. Windows 10/11, x64.</p>
