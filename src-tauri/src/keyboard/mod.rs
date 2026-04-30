@@ -16,6 +16,11 @@ pub struct LayoutMeta {
     pub name: HashMap<String, String>,
     pub locale: String,
     pub description: HashMap<String, String>,
+    /// DLL filename without extension (e.g. "kbdaplfr"). Surfaced so the UI can
+    /// derive a DLL→layout-id map from the runtime layout list instead of
+    /// hardcoding it (Settings page, Health Check button gating).
+    #[serde(rename = "dllName")]
+    pub dll_name: String,
 }
 
 /// A single detection-key entry used by the auto-detection UI.
@@ -83,6 +88,7 @@ impl Layout {
             name: self.name.clone(),
             locale: self.locale.clone(),
             description: self.description.clone(),
+            dll_name: self.dll_name.clone(),
         }
     }
 

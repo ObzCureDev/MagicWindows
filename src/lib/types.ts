@@ -3,6 +3,10 @@ export interface LayoutMeta {
   name: Record<string, string>;
   locale: string;
   description: Record<string, string>;
+  /** DLL filename without extension (e.g. "kbdaplfr"). Surfaced by `list_layouts`
+   * so the UI can derive a DLL→layout-id map from the runtime layout list
+   * (Settings page, Health Check button gating). */
+  dllName: string;
 }
 
 export interface DetectionKey {
