@@ -383,7 +383,12 @@ fn emit_control_key_tables(out: &mut String) {
     push(out, "static VK_TO_WCHARS2 aVkToWch2[] = {");
     push(out, "    { VK_BACK,    0x00, { 0x0008, 0x007F } },");
     push(out, "    { VK_ESCAPE,  0x00, { 0x001B, 0x001B } },");
-    push(out, "    { VK_RETURN,  0x00, { 0x000D, 0x000A } },");
+    // Shift+Enter: emit CR (same as Enter alone) instead of LF.
+    // Returning a printable wchar for Shift+Enter makes Chromium/Electron
+    // (Antigravity, VSCode, Slack…) treat it as a text-input event and swallow
+    // the keybinding — Shift+Enter then no longer triggers terminal newline.
+    // Microsoft's stock layouts leave the second slot empty for the same reason.
+    push(out, "    { VK_RETURN,  0x00, { 0x000D, 0x000D } },");
     push(out, "    { VK_CANCEL,  0x00, { 0x0003, 0x0003 } },");
     push(out, "    { 0,          0x00, { 0,      0      } }");
     push(out, "};");
