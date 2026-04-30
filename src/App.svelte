@@ -4,6 +4,7 @@
   import { t } from "./lib/i18n";
   import type { Theme } from "./lib/types";
   import Welcome from "./pages/Welcome.svelte";
+  import BluetoothPairing from "./pages/BluetoothPairing.svelte";
   import Detect from "./pages/Detect.svelte";
   import Select from "./pages/Select.svelte";
   import Preview from "./pages/Preview.svelte";
@@ -130,6 +131,8 @@
 
 {#if appState.page === "welcome"}
   <Welcome />
+{:else if appState.page === "bluetoothPairing"}
+  <BluetoothPairing />
 {:else if appState.page === "detect"}
   <Detect />
 {:else if appState.page === "select"}

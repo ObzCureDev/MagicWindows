@@ -1,10 +1,12 @@
 pub mod detect;
 pub mod diagnostics;
+pub mod f12_remap;
+pub mod hardware;
 pub mod health_check;
 pub mod install;
 pub mod klc;
-pub mod scancode_map;
 pub mod modifiers;
+pub mod scancode_map;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

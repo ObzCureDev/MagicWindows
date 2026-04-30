@@ -18,6 +18,8 @@ class AppState {
   lastInstallMs = $state<number | null>(null);
   detectionFailedMessage = $state<string | null>(null);
   healthCheckTarget = $state<HealthCheckTarget | null>(null);
+  appleKeyboardConnected = $state<boolean | null>(null);
+  skippedPairing = $state<boolean>(false);
 }
 
 export const appState = new AppState();

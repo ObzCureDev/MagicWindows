@@ -12,6 +12,15 @@ export const translations: Record<string, Record<string, unknown>> = {
       detectButton: "Auto-detect my keyboard",
       selectButton: "Choose manually",
     },
+    bluetoothPairing: {
+      title: "Pair your Magic Keyboard",
+      subtitle: "We didn't detect an Apple keyboard. Open Bluetooth settings, pair your Magic Keyboard, and we'll continue automatically.",
+      openSettings: "Open Bluetooth settings",
+      watching: "Watching for a Magic Keyboard…",
+      detected: "Got it. Continuing to detection.",
+      timeout: "No keyboard detected after 5 minutes. You can try again or skip.",
+      skip: "Skip — I'll pair later",
+    },
     detect: {
       title: "Keyboard Detection",
       instruction: "Find a symbol on your keyboard and press the key it's printed on.",
@@ -112,6 +121,20 @@ export const translations: Record<string, Record<string, unknown>> = {
         "This layout is currently used by your session. Remove anyway?",
       empty: "No keyboard layouts found.",
       loading: "Loading layouts…",
+      f12: {
+        title: "F12 / Eject key behaviour",
+        hint: "Apple's F12 is Eject — useless under Windows. Choose what F12 should do instead.",
+        applied: "Applied. F12 now {action}.",
+        option: {
+          default: "Default (F12)",
+          disabled: "Disabled",
+          calculator: "Open Calculator",
+          search: "Browser Search",
+          mail: "Open Mail",
+          appsMenu: "Right-click menu",
+          volumeMute: "Mute volume",
+        },
+      },
     },
     elevatedError: {
       title: "Something went wrong",
@@ -217,6 +240,15 @@ export const translations: Record<string, Record<string, unknown>> = {
       detectButton: "Détecter mon clavier",
       selectButton: "Choisir manuellement",
     },
+    bluetoothPairing: {
+      title: "Apparier votre Magic Keyboard",
+      subtitle: "Aucun clavier Apple détecté. Ouvrez les paramètres Bluetooth, appariez votre Magic Keyboard, et on continue automatiquement.",
+      openSettings: "Ouvrir les paramètres Bluetooth",
+      watching: "En attente d'un Magic Keyboard…",
+      detected: "Détecté. Passage à la détection clavier.",
+      timeout: "Aucun clavier détecté après 5 minutes. Réessayer ou passer.",
+      skip: "Passer — j'apparierai plus tard",
+    },
     detect: {
       title: "Détection du clavier",
       instruction: "Repérez un symbole sur votre clavier et appuyez sur la touche où il est imprimé.",
@@ -320,6 +352,20 @@ export const translations: Record<string, Record<string, unknown>> = {
         "Ce layout est actuellement utilisé par votre session. Le retirer quand même ?",
       empty: "Aucun layout clavier trouvé.",
       loading: "Chargement des layouts…",
+      f12: {
+        title: "Comportement de la touche F12 / Eject",
+        hint: "La touche F12 d'Apple est Eject — sans utilité sous Windows. Choisissez ce qu'elle doit faire à la place.",
+        applied: "Appliqué. F12 → {action}.",
+        option: {
+          default: "Par défaut (F12)",
+          disabled: "Désactivée",
+          calculator: "Ouvrir la Calculatrice",
+          search: "Recherche navigateur",
+          mail: "Ouvrir Mail",
+          appsMenu: "Menu contextuel",
+          volumeMute: "Couper le volume",
+        },
+      },
     },
     elevatedError: {
       title: "Une erreur est survenue",

@@ -47,7 +47,7 @@ export interface DetectionResult {
   receivedChar: string;
 }
 
-export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "test" | "done" | "about" | "modifiers" | "settings" | "healthCheck";
+export type Page = "welcome" | "detect" | "select" | "preview" | "install" | "test" | "done" | "about" | "modifiers" | "settings" | "healthCheck" | "bluetoothPairing";
 export type Lang = "en" | "fr";
 export type Theme = "light" | "dark" | "system";
 
@@ -162,4 +162,18 @@ export interface HealthCheckTarget {
   layoutId: string;
   /** Installed KLID, e.g. "a000040c" — comes from InstalledLayoutInfo, NOT layout.localeId */
   klid: string;
+}
+
+// ── F12 / Eject remap (see src-tauri/src/keyboard/f12_remap.rs)
+
+export type F12Action =
+  | "default" | "disabled" | "calculator" | "search"
+  | "mail" | "appsMenu" | "volumeMute";
+
+// ── Apple keyboard hardware probe
+
+export interface AppleKeyboardInfo {
+  friendlyName: string;
+  hardwareId: string;
+  status: string;
 }

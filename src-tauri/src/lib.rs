@@ -175,9 +175,12 @@ pub fn run() {
             crate::keyboard::modifiers::read_scancode_map,
             crate::keyboard::modifiers::write_scancode_map,
             crate::keyboard::modifiers::clear_scancode_map,
+            crate::keyboard::f12_remap::f12_remap_get,
+            crate::keyboard::f12_remap::f12_remap_set,
             crate::keyboard::install::list_all_installed_layouts,
             crate::keyboard::install::uninstall_by_klid,
             crate::keyboard::diagnostics::collect_diagnostics,
+            crate::keyboard::hardware::enumerate_apple_keyboards,
             crate::keyboard::health_check::health_check_control_keys,
         ])
         .run(tauri::generate_context!())
