@@ -20,17 +20,21 @@
     }
   });
 
+  // Initialize synchronously from the derived `target` so we never go through
+  // an empty-string state. The `$effect` above bounces to Settings if
+  // `target` is null, so the `?? ""` fallbacks are defence-in-depth only —
+  // we intentionally capture the initial value here, not a reactive ref.
+  /* svelte-ignore state_referenced_locally */
   let session = $state<HealthCheckSession>({
-    layoutId: "",
-    klid: "",
+    layoutId: target?.layoutId ?? "",
+    /* svelte-ignore state_referenced_locally */
+    klid: target?.klid ?? "",
     startedAt: new Date().toISOString(),
     results: [],
   });
 
   onMount(async () => {
     if (!target) return;
-    session.layoutId = target.layoutId;
-    session.klid = target.klid;
     try {
       // Same loader pattern used by Test.svelte / Preview.svelte / Detect.svelte.
       layout = await invoke<Layout>("get_layout", { id: target.layoutId });
@@ -64,7 +68,6 @@
     if (!layout) return;
     const sc = SCANCODE_BY_EVENT_CODE[e.code];
     if (!sc) return;
-    e.preventDefault();
     const mods: ModState = {
       shift: e.shiftKey,
       altgr: e.getModifierState("AltGraph"),
