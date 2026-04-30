@@ -3,8 +3,48 @@
   import { invoke } from "@tauri-apps/api/core";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
-  import type { InstalledLayoutInfo, LayoutMeta } from "../lib/types";
+  import type { InstalledLayoutInfo, LayoutMeta, F12Action } from "../lib/types";
   import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
+
+  let f12Action = $state<F12Action>("default");
+  let f12Saving = $state(false);
+  let f12Message = $state<string>("");
+  let f12Error = $state<string>("");
+
+  const F12_OPTIONS: { value: F12Action; key: string }[] = [
+    { value: "default",    key: "settings.f12.option.default" },
+    { value: "disabled",   key: "settings.f12.option.disabled" },
+    { value: "calculator", key: "settings.f12.option.calculator" },
+    { value: "search",     key: "settings.f12.option.search" },
+    { value: "mail",       key: "settings.f12.option.mail" },
+    { value: "appsMenu",   key: "settings.f12.option.appsMenu" },
+    { value: "volumeMute", key: "settings.f12.option.volumeMute" },
+  ];
+
+  async function loadF12() {
+    try {
+      f12Action = await invoke<F12Action>("f12_remap_get");
+    } catch {
+      // Leave at "default" — read failure means we can't reflect current state
+      // but the user can still set a new value.
+    }
+  }
+
+  async function saveF12(next: F12Action) {
+    f12Saving = true;
+    f12Message = "";
+    f12Error = "";
+    try {
+      await invoke("f12_remap_set", { action: next });
+      f12Action = next;
+      const optionLabel = t(appState.lang, F12_OPTIONS.find(o => o.value === next)!.key);
+      f12Message = t(appState.lang, "settings.f12.applied").replace("{action}", optionLabel);
+    } catch (e) {
+      f12Error = String(e);
+    } finally {
+      f12Saving = false;
+    }
+  }
 
   // "kbdaplfr.dll" → "apple-fr-azerty". Derived from the bundled layout list
   // (loaded by Welcome) so adding a new layouts/*.json automatically lights
@@ -92,6 +132,7 @@
       }
     }
     await loadLayouts();
+    await loadF12();
   });
 </script>
 
@@ -183,6 +224,28 @@
         {/each}
       </div>
     {/if}
+
+    <section class="settings-section">
+      <h2>{t(appState.lang, "settings.f12.title")}</h2>
+      <p class="hint">{t(appState.lang, "settings.f12.hint")}</p>
+
+      <select
+        disabled={f12Saving}
+        value={f12Action}
+        onchange={(e) => saveF12((e.currentTarget as HTMLSelectElement).value as F12Action)}
+      >
+        {#each F12_OPTIONS as opt}
+          <option value={opt.value}>{t(appState.lang, opt.key)}</option>
+        {/each}
+      </select>
+
+      {#if f12Message}
+        <p class="hint ok">{f12Message}</p>
+      {/if}
+      {#if f12Error}
+        <p class="hint fail">{f12Error}</p>
+      {/if}
+    </section>
 
     <div class="page__actions">
       <button class="btn btn-secondary" onclick={goBack}>
@@ -297,4 +360,46 @@
     color: var(--color-text-muted);
     font-size: 1.05rem;
   }
+  .settings-section {
+    width: 100%;
+    max-width: 640px;
+    margin: 24px auto 0;
+    padding: 16px 18px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .settings-section h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .settings-section .hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+  }
+  .settings-section select {
+    align-self: flex-start;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .settings-section select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .ok { color: var(--color-success); }
+  .fail { color: var(--color-danger); }
 </style>
