@@ -4,7 +4,7 @@
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
   import type { Layout } from "../lib/types";
-  import KeyboardVisual from "../components/KeyboardVisual.svelte";
+  import { KeyboardVisual } from "@magicwindows/keyboard-visual";
 
   let layout = $state<Layout | null>(null);
   let text = $state("");

@@ -11,7 +11,7 @@
   } from "../lib/detection";
   import catalogueJson from "../lib/detection-catalogue.generated.json";
   import type { DetectionCatalogue, DetectionCharEntry, Layout } from "../lib/types";
-  import KeyboardVisual from "../components/KeyboardVisual.svelte";
+  import { KeyboardVisual } from "@magicwindows/keyboard-visual";
 
   const catalogue = catalogueJson as DetectionCatalogue;
   const MAX_QUESTIONS = 3;

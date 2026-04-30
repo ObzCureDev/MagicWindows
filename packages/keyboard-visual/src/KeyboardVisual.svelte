@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Layout, KeyStatus } from "../lib/types";
+  import type { Layout, KeyStatus } from "./types.js";
 
   interface Props {
     layout: Layout;

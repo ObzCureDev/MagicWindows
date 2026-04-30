@@ -4,7 +4,7 @@
   import { getVersion } from "@tauri-apps/api/app";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
-  import KeyboardVisual from "../components/KeyboardVisual.svelte";
+  import { KeyboardVisual } from "@magicwindows/keyboard-visual";
   import type { Layout, KeyStatus, HealthCheckSession, ModState } from "../lib/types";
   import { expectedCodepointFor, compareKeystroke } from "../lib/healthCheck";
   import { SCANCODE_BY_EVENT_CODE } from "../lib/scancode";
