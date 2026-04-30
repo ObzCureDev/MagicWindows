@@ -4,9 +4,10 @@
   interface Props {
     layout: Layout;
     activeLayer: "base" | "shift" | "altgr" | "altgrShift";
+    keyStatus?: Record<string, "untested" | "passed" | "failed">;
   }
 
-  let { layout, activeLayer }: Props = $props();
+  let { layout, activeLayer, keyStatus = {} }: Props = $props();
 
   // ── ISO vs ANSI detection ─────────────────────────────────────────────
   const isISO = $derived(!!layout.keys["56"]);
@@ -281,7 +282,7 @@
       {#each numberRow as sc}
         {@const chars = getKeyChars(sc)}
         <div
-          class="key key--char"
+          class={`key key--char status-${keyStatus[sc] ?? "untested"}`}
           class:key--different={isDifferent(sc)}
           class:key--dead={isDeadKey(sc)}
           title={getTooltip(sc)}
@@ -306,7 +307,7 @@
       {#each topRow as sc}
         {@const chars = getKeyChars(sc)}
         <div
-          class="key key--char"
+          class={`key key--char status-${keyStatus[sc] ?? "untested"}`}
           class:key--different={isDifferent(sc)}
           class:key--dead={isDeadKey(sc)}
           title={getTooltip(sc)}
@@ -331,7 +332,7 @@
       {#each homeRow as sc}
         {@const chars = getKeyChars(sc)}
         <div
-          class="key key--char"
+          class={`key key--char status-${keyStatus[sc] ?? "untested"}`}
           class:key--different={isDifferent(sc)}
           class:key--dead={isDeadKey(sc)}
           title={getTooltip(sc)}
@@ -362,7 +363,7 @@
         </div>
         {@const isoChars = getKeyChars(isoExtraScancode)}
         <div
-          class="key key--char key--iso-extra"
+          class={`key key--char key--iso-extra status-${keyStatus[isoExtraScancode] ?? "untested"}`}
           class:key--different={isDifferent(isoExtraScancode)}
           class:key--dead={isDeadKey(isoExtraScancode)}
           title={getTooltip(isoExtraScancode)}
@@ -381,7 +382,7 @@
       {#each bottomRow as sc}
         {@const chars = getKeyChars(sc)}
         <div
-          class="key key--char"
+          class={`key key--char status-${keyStatus[sc] ?? "untested"}`}
           class:key--different={isDifferent(sc)}
           class:key--dead={isDeadKey(sc)}
           title={getTooltip(sc)}
@@ -763,6 +764,11 @@
     color: var(--key-diff-text);
     font-weight: 600;
   }
+
+  /* ── Per-key status overlay (Health Check) ───────────────────────────── */
+  /* .status-untested is the default — no extra ring (intentionally no rule). */
+  .key.status-passed { box-shadow: 0 0 0 2px var(--color-success, #34d399) inset; }
+  .key.status-failed { box-shadow: 0 0 0 2px var(--color-danger, #f87171) inset; }
 
   /* ── Dead key indicator ──────────────────────────────────────────────── */
   .key--dead::after {
