@@ -24,6 +24,7 @@ const SRC_TAURI = join(REPO_ROOT, "src-tauri");
 
 const R2_BUCKET = "magicwindows-downloads";
 const R2_PUBLIC_BASE = `https://${R2_BUCKET}.r2.dev`;
+const EPOCH = new Date(0);
 
 // ── Pure helpers (unit-tested in build-web-release.test.mjs) ────────────────
 
@@ -63,13 +64,29 @@ function loadLayouts() {
     }));
 }
 
-function ensureDllsBuilt() {
+function ensureDllsBuilt(layouts) {
   console.log("→ Triggering cargo build (compiles layouts/*.json into kbd_dlls/*.dll via build.rs)...");
   execFileSync("cargo", ["build", "--manifest-path", join(SRC_TAURI, "Cargo.toml")], {
     stdio: "inherit",
   });
   if (!existsSync(DLL_OUT_DIR)) {
     throw new Error(`DLL output dir missing after cargo build: ${DLL_OUT_DIR}. Are you on Windows with MSVC?`);
+  }
+  const missing = [];
+  for (const layout of layouts) {
+    const dllName = layout.data.dllName;
+    if (!dllName) continue; // layoutMetadata will throw later with a clearer error
+    const dllPath = join(DLL_OUT_DIR, `${dllName}.dll`);
+    if (!existsSync(dllPath)) {
+      missing.push(`${layout.id} → ${dllName}.dll`);
+    }
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `cargo build did not produce DLLs for ${missing.length} layout(s):\n  ` +
+      missing.join("\n  ") +
+      `\nCheck src-tauri/build.rs warnings or run from src-tauri/ to see compiler errors.`
+    );
   }
 }
 
@@ -87,17 +104,19 @@ async function packageOne(layoutEntry, version) {
 
   await new Promise((resolveZip, rejectZip) => {
     const out = createWriteStream(zipPath);
-    const ar = archiver("zip", { zlib: { level: 9 } });
+    // statConcurrency: 1 keeps entry order stable across runs (default 4 races
+    // file stats, producing different central-directory ordering each run).
+    const ar = archiver("zip", { zlib: { level: 9 }, statConcurrency: 1 });
     out.on("close", resolveZip);
     ar.on("error", rejectZip);
     ar.pipe(out);
-    ar.file(dllPath, { name: `${meta.dllName}.dll` });
-    ar.file(join(PAYLOAD_DIR, "Install-Layout.cmd"),   { name: "Install-Layout.cmd" });
-    ar.file(join(PAYLOAD_DIR, "Install-Layout.ps1"),   { name: "Install-Layout.ps1" });
-    ar.file(join(PAYLOAD_DIR, "Uninstall-Layout.cmd"), { name: "Uninstall-Layout.cmd" });
-    ar.file(join(PAYLOAD_DIR, "Uninstall-Layout.ps1"), { name: "Uninstall-Layout.ps1" });
-    ar.file(join(PAYLOAD_DIR, "README.txt"),           { name: "README.txt" });
-    ar.append(layoutJson, { name: "layout.json" });
+    ar.file(dllPath, { name: `${meta.dllName}.dll`, date: EPOCH });
+    ar.file(join(PAYLOAD_DIR, "Install-Layout.cmd"),   { name: "Install-Layout.cmd",   date: EPOCH });
+    ar.file(join(PAYLOAD_DIR, "Install-Layout.ps1"),   { name: "Install-Layout.ps1",   date: EPOCH });
+    ar.file(join(PAYLOAD_DIR, "Uninstall-Layout.cmd"), { name: "Uninstall-Layout.cmd", date: EPOCH });
+    ar.file(join(PAYLOAD_DIR, "Uninstall-Layout.ps1"), { name: "Uninstall-Layout.ps1", date: EPOCH });
+    ar.file(join(PAYLOAD_DIR, "README.txt"),           { name: "README.txt",           date: EPOCH });
+    ar.append(layoutJson,                              { name: "layout.json",          date: EPOCH });
     ar.finalize();
   });
 
@@ -128,9 +147,8 @@ async function main() {
   if (existsSync(STAGING_DIR)) rmSync(STAGING_DIR, { recursive: true, force: true });
   mkdirSync(STAGING_DIR, { recursive: true });
 
-  ensureDllsBuilt();
-
   const layouts = loadLayouts();
+  ensureDllsBuilt(layouts);
   console.log(`Found ${layouts.length} layouts\n`);
 
   const downloads = {};
