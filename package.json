@@ -21,7 +21,9 @@
     "tauri": "tauri",
     "build:portable": "npm run tauri build && node scripts/build-portable.mjs",
     "measure": "node scripts/measure-bundle.mjs",
-    "build:release": "npm run tauri build && node scripts/build-portable.mjs && node scripts/measure-bundle.mjs"
+    "build:release": "npm run tauri build && node scripts/build-portable.mjs && node scripts/measure-bundle.mjs",
+    "release:web": "node scripts/build-web-release.mjs",
+    "release:web:dry": "node scripts/build-web-release.mjs --dry-run"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
