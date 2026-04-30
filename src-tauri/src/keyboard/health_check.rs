@@ -48,6 +48,7 @@ pub fn health_check_control_keys(klid: String) -> Result<ControlKeyReport, Strin
     // for a single call.
     let script = format!(
         r#"
+$ErrorActionPreference = 'Stop'
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;

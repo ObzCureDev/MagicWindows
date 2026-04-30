@@ -491,7 +491,7 @@ exact pattern verbatim instead — do **not** invent a new loader.
 
 - [ ] **Step 3.3: Extract scancode-from-event-code map**
 
-Inspect `src/components/KeyboardVisual.svelte` — there is already a mapping from `event.code` to scancode used for the highlight feature. Extract it to `src/lib/scancode.ts`, export `SCANCODE_BY_EVENT_CODE`, and import from both `KeyboardVisual` and `HealthCheck`.
+The canonical scancode↔event-code table lives in `scripts/scancode-map.mjs` (build-time Node script). Create `src/lib/scancode.ts` that imports `SCANCODE_TO_CODE` from there and derives the inverse `SCANCODE_BY_EVENT_CODE` at module load via `Object.fromEntries`. This makes `scripts/scancode-map.mjs` the single source of truth. Export `SCANCODE_BY_EVENT_CODE`, and import from both `KeyboardVisual` and `HealthCheck`.
 
 - [ ] **Step 3.4: Wire route in `App.svelte`**
 
@@ -783,8 +783,9 @@ In `src-tauri/src/keyboard/mod.rs`, add:
 
 ```rust
 pub mod health_check;
-pub use health_check::{health_check_control_keys, ControlKeyReport, ControlKeyResult};
 ```
+
+> **Convention note.** Only `pub mod health_check;` is required — no `pub use` re-export. `lib.rs` declares `mod keyboard;` privately and the `tauri::generate_handler!` macro references the full path `crate::keyboard::health_check::health_check_control_keys`. The existing `diagnostics` module follows the same pattern, so a `pub use` here would be a no-op.
 
 - [ ] **Step 5.4: Register the command**
 
@@ -895,7 +896,7 @@ In the template, after the keyboard visual section (and inside the
 </section>
 ```
 
-And add the export button next to "Back" in the actions row from Task 3:
+And add the export button to a bottom action row (`.hc-actions`). Back stays in the page header from Task 3 — putting both in the same row crowds the header layout.
 
 ```svelte
 <button onclick={exportReport}>
