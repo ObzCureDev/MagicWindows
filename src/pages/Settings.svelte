@@ -3,24 +3,25 @@
   import { invoke } from "@tauri-apps/api/core";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
-  import type { InstalledLayoutInfo } from "../lib/types";
+  import type { InstalledLayoutInfo, LayoutMeta } from "../lib/types";
   import ElevatedErrorPanel from "../components/ElevatedErrorPanel.svelte";
 
-  // Maps an installed Apple layout DLL filename to the bundled layout JSON id
-  // used by the Health Check page. Only MagicWindows-installed layouts have a
-  // known JSON to compare keystrokes against — the helper returns "" for any
-  // other DLL.
-  const DLL_TO_LAYOUT_ID: Record<string, string> = {
-    "kbdaplus.dll": "apple-us-qwerty",
-    "kbdaplfr.dll": "apple-fr-azerty",
-    "kbdapluk.dll": "apple-uk-qwerty",
-    "kbdaplde.dll": "apple-de-qwertz",
-    "kbdaples.dll": "apple-es-qwerty",
-    "kbdaplit.dll": "apple-it-qwerty",
-  };
+  // "kbdaplfr.dll" → "apple-fr-azerty". Derived from the bundled layout list
+  // (loaded by Welcome) so adding a new layouts/*.json automatically lights
+  // up its Health Check button — no manual map maintenance.
+  // LayoutMeta.dllName is the bare basename (e.g. "kbdaplfr") while the
+  // registry-side InstalledLayoutInfo.layoutFile carries the ".dll" suffix,
+  // so we append it when building the map keys.
+  const layoutIdByDll = $derived.by(() => {
+    const map: Record<string, string> = {};
+    for (const l of appState.layouts) {
+      map[`${l.dllName.toLowerCase()}.dll`] = l.id;
+    }
+    return map;
+  });
 
   function layoutIdFromDll(dllName: string): string {
-    return DLL_TO_LAYOUT_ID[dllName.toLowerCase()] ?? "";
+    return layoutIdByDll[dllName.toLowerCase()] ?? "";
   }
 
   let allLayouts = $state<InstalledLayoutInfo[]>([]);
@@ -77,7 +78,21 @@
     appState.page = "welcome";
   }
 
-  onMount(loadLayouts);
+  onMount(async () => {
+    // Settings is reachable directly from the top-bar gear icon, so the user
+    // can land here without going through Welcome (which is where layouts are
+    // normally fetched). When that happens, the layoutIdByDll derived map
+    // would be empty and the Health Check button would silently disappear.
+    if (appState.layouts.length === 0) {
+      try {
+        appState.layouts = await invoke<LayoutMeta[]>("list_layouts");
+      } catch {
+        // Silently ignore — layoutIdFromDll will return empty for all entries,
+        // hiding the Health Check buttons. Acceptable failure mode.
+      }
+    }
+    await loadLayouts();
+  });
 </script>
 
 <div class="page settings">

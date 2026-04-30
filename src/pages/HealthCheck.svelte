@@ -38,6 +38,13 @@
     }
   }
 
+  // The Rust probe returns stable identifiers ("enter", "shift_enter", …)
+  // and we localise them here so the FR UI doesn't end up with mixed-language
+  // sentences. Falls back to the raw identifier when the i18n key is missing.
+  function controlKeyLabel(name: string): string {
+    return t(appState.lang, `healthCheck.controlKey.${name}`);
+  }
+
   async function exportReport() {
     const appVersion = await getVersion().catch(() => "unknown");
     const payload = {
@@ -180,7 +187,7 @@
               "{keys}",
               controlReport.results
                 .filter((r) => !r.passed)
-                .map((r) => r.name)
+                .map((r) => controlKeyLabel(r.name))
                 .join(", ")
             )}
           </p>
@@ -188,7 +195,7 @@
         <ul class="control-results">
           {#each controlReport.results as r}
             <li class={r.passed ? "ok" : "fail"}>
-              <strong>{r.name}</strong> — {r.passed ? "OK" : `produced ${r.produced}`}
+              <strong>{controlKeyLabel(r.name)}</strong> — {r.passed ? "OK" : `produced ${r.produced}`}
             </li>
           {/each}
         </ul>
