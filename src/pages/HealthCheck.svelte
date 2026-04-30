@@ -1,12 +1,62 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import { getVersion } from "@tauri-apps/api/app";
   import { appState } from "../lib/stores.svelte";
   import { t } from "../lib/i18n";
   import KeyboardVisual from "../components/KeyboardVisual.svelte";
   import type { Layout, KeyStatus, HealthCheckSession, ModState } from "../lib/types";
   import { expectedCodepointFor, compareKeystroke } from "../lib/healthCheck";
   import { SCANCODE_BY_EVENT_CODE } from "../lib/scancode";
+
+  interface ControlKeyResult {
+    name: string;
+    vk: number;
+    shift: boolean;
+    passed: boolean;
+    produced: string;
+  }
+  interface ControlKeyReport {
+    klid: string;
+    results: ControlKeyResult[];
+    all_passed: boolean;
+  }
+
+  let controlReport = $state<ControlKeyReport | null>(null);
+  let controlError = $state<string | null>(null);
+
+  async function runControlKeyCheck() {
+    if (!target) return;
+    controlError = null;
+    controlReport = null;
+    try {
+      controlReport = await invoke<ControlKeyReport>("health_check_control_keys", {
+        klid: target.klid,
+      });
+    } catch (e) {
+      controlError = String(e);
+    }
+  }
+
+  async function exportReport() {
+    const appVersion = await getVersion().catch(() => "unknown");
+    const payload = {
+      appVersion,
+      exportedAt: new Date().toISOString(),
+      session,
+      controlReport,
+      controlError,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `magicwindows-health-${session.layoutId}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Page reads its target from appState. Settings is the only entry point
   // and is responsible for setting healthCheckTarget before navigating.
@@ -115,6 +165,45 @@
         .replace("{failed}", String(summary.failed))
         .replace("{untested}", String(summary.untested))}
     </p>
+
+    <section class="control-keys">
+      <button class="btn btn-secondary btn-sm" onclick={runControlKeyCheck}>
+        {t(appState.lang, "healthCheck.runControlKeys")}
+      </button>
+
+      {#if controlReport}
+        {#if controlReport.all_passed}
+          <p class="ok">{t(appState.lang, "healthCheck.controlKeysOk")}</p>
+        {:else}
+          <p class="fail">
+            {t(appState.lang, "healthCheck.controlKeysFail").replace(
+              "{keys}",
+              controlReport.results
+                .filter((r) => !r.passed)
+                .map((r) => r.name)
+                .join(", ")
+            )}
+          </p>
+        {/if}
+        <ul class="control-results">
+          {#each controlReport.results as r}
+            <li class={r.passed ? "ok" : "fail"}>
+              <strong>{r.name}</strong> — {r.passed ? "OK" : `produced ${r.produced}`}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if controlError}
+        <p class="fail">{controlError}</p>
+      {/if}
+    </section>
+
+    <div class="hc-actions">
+      <button class="btn btn-secondary btn-sm" onclick={exportReport}>
+        {t(appState.lang, "healthCheck.exportReport")}
+      </button>
+    </div>
   {:else}
     <div class="hc-center"><div class="spinner"></div></div>
   {/if}
@@ -187,5 +276,44 @@
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--color-text-secondary);
+  }
+  .control-keys {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .control-keys .ok {
+    margin: 0;
+    color: var(--color-success);
+    font-size: 13px;
+  }
+  .control-keys .fail {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: 13px;
+  }
+  .control-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .control-results li.ok {
+    color: var(--color-success);
+  }
+  .control-results li.fail {
+    color: var(--color-danger);
+  }
+  .hc-actions {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
   }
 </style>
