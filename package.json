@@ -1,6 +1,10 @@
 {
   "name": "magicwindows",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "web"
+  ],
   "version": "0.3.0",
   "type": "module",
   "description": "Install Apple Magic Keyboard layouts on Windows — auto-detect your keyboard and fix keycap mismatches",
