@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { Layout } from "../lib/types";
+  import type { Layout, KeyStatus } from "../lib/types";
 
   interface Props {
     layout: Layout;
     activeLayer: "base" | "shift" | "altgr" | "altgrShift";
-    keyStatus?: Record<string, "untested" | "passed" | "failed">;
+    keyStatus?: Record<string, KeyStatus>;
   }
 
   let { layout, activeLayer, keyStatus = {} }: Props = $props();
