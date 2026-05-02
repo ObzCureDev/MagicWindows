@@ -1,5 +1,36 @@
 {
-  "version": "0.0.0",
-  "generatedAt": "1970-01-01T00:00:00Z",
-  "downloads": {}
+  "version": "0.3.0",
+  "generatedAt": "2026-05-02T06:49:34.462Z",
+  "downloads": {
+    "apple-de-qwertz": {
+      "url": "https://dl.mindvisionstudio.com/magicwindows-apple-de-qwertz-0.3.0.zip",
+      "size": 6967,
+      "sha256": "eb042186a94c93afc886c571a6b4e570ee58cfd8b4373f7bbe4ac4655cf09486"
+    },
+    "apple-es-qwerty": {
+      "url": "https://dl.mindvisionstudio.com/magicwindows-apple-es-qwerty-0.3.0.zip",
+      "size": 6988,
+      "sha256": "d0bbecf2965c3889f197194af3580f9483009e760a9b6d1fc3c1a8150baea24a"
+    },
+    "apple-fr-azerty": {
+      "url": "https://dl.mindvisionstudio.com/magicwindows-apple-fr-azerty-0.3.0.zip",
+      "size": 6871,
+      "sha256": "60c539adfdd00bc5fbfba55fc676d68e8da5102ecae5005b2da70f1ea8204620"
+    },
+    "apple-it-qwerty": {
+      "url": "https://dl.mindvisionstudio.com/magicwindows-apple-it-qwerty-0.3.0.zip",
+      "size": 6750,
+      "sha256": "d97df1ca260fca40bf814bca13859b6485abda63fa58b3a32ffb511057981af7"
+    },
+    "apple-uk-qwerty": {
+      "url": "https://dl.mindvisionstudio.com/magicwindows-apple-uk-qwerty-0.3.0.zip",
+      "size": 6996,
+      "sha256": "9c034376962cc16b2166787d28d6e8640a24211de707ec29fd82d53b4753e610"
+    },
+    "apple-us-qwerty": {
+      "url": "https://dl.mindvisionstudio.com/magicwindows-apple-us-qwerty-0.3.0.zip",
+      "size": 6986,
+      "sha256": "ba45eb69eaf6dd2af10db4874b8aa81212eb4f4a55940264797e67604254ea74"
+    }
+  }
 }

@@ -23,7 +23,11 @@ const MANIFEST_PATH = join(REPO_ROOT, "web", "public", "manifest.json");
 const SRC_TAURI = join(REPO_ROOT, "src-tauri");
 
 const R2_BUCKET = "magicwindows-downloads";
-const R2_PUBLIC_BASE = `https://${R2_BUCKET}.r2.dev`;
+// Custom domain bound to the R2 bucket via Cloudflare Pages-style attachment.
+// Override at runtime via MAGICWINDOWS_R2_BASE if you ever migrate to a
+// different host (or fall back to the bucket's pub-*.r2.dev URL for testing).
+const R2_PUBLIC_BASE = process.env.MAGICWINDOWS_R2_BASE
+  ?? "https://dl.mindvisionstudio.com";
 const EPOCH = new Date(0);
 
 // ── Pure helpers (unit-tested in build-web-release.test.mjs) ────────────────
@@ -132,10 +136,11 @@ async function packageOne(layoutEntry, version) {
 
 function uploadToR2(zipPath, zipName) {
   console.log(`  ↑ uploading ${zipName} to R2 ...`);
+  // shell: true so Windows can resolve `npx` (a .cmd shim) via PATHEXT.
   execFileSync("npx", ["wrangler", "r2", "object", "put",
     `${R2_BUCKET}/${zipName}`,
     "--file", zipPath,
-  ], { stdio: "inherit" });
+  ], { stdio: "inherit", shell: true });
 }
 
 async function main() {
