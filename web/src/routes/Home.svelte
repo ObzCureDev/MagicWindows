@@ -3,6 +3,7 @@
 </script>
 
 <header class="hero">
+  <img class="hero-logo" src="/logo-256.png" alt="MagicWindows logo" width="96" height="96" />
   <h1>Apple keyboard layouts on Windows</h1>
   <p class="lede">
     Plug your Apple Magic Keyboard into a Windows PC and the printed keys don't match
@@ -30,9 +31,16 @@
 <style>
   .hero {
     max-width: 720px;
-    margin: 4rem auto 2rem;
-    padding: 0 1.5rem;
+    margin: 3rem auto 2rem;
+    padding: 0 1.25rem;
     text-align: center;
+  }
+  .hero-logo {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 1.25rem;
+    display: block;
+    image-rendering: -webkit-optimize-contrast;
   }
   .hero h1 {
     font-size: 2.5rem;
@@ -56,7 +64,7 @@
   .grid {
     max-width: 1080px;
     margin: 2rem auto 4rem;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
@@ -88,5 +96,44 @@
     color: #0066cc;
     font-size: 0.9rem;
     font-weight: 500;
+  }
+
+  /* ── Tablet ───────────────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .hero {
+      margin: 2rem auto 1.5rem;
+    }
+    .hero-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1rem;
+    }
+    .hero h1 {
+      font-size: 2rem;
+    }
+    .lede {
+      font-size: 1rem;
+    }
+    .grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      margin: 1.5rem auto 3rem;
+    }
+  }
+
+  /* ── Mobile ───────────────────────────────────────────────────────── */
+  @media (max-width: 480px) {
+    .hero h1 {
+      font-size: 1.65rem;
+    }
+    .hero-logo {
+      width: 72px;
+      height: 72px;
+    }
+    .lede {
+      font-size: 0.95rem;
+    }
+    .grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

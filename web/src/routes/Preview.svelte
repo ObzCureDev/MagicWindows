@@ -176,4 +176,49 @@
     color: #b91c1c;
     font-size: 0.95rem;
   }
+
+  /* ── Tablet ───────────────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .head { padding: 0 1.25rem; margin-top: 1.5rem; }
+    .head h1 { font-size: 1.5rem; }
+    .switcher,
+    .layer-toggle { padding: 0 1.25rem; }
+    .switcher button,
+    .layer-toggle button {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.8rem;
+    }
+    .preview-wrap {
+      padding: 0;
+      overflow-x: auto;
+      justify-content: flex-start;
+      -webkit-overflow-scrolling: touch;
+    }
+    .preview-wrap > :global(*) {
+      margin: 0 1rem;
+    }
+    .download-bar { padding: 0 1.25rem; margin-bottom: 3rem; }
+    .download-btn {
+      padding: 0.75rem 1.4rem;
+      font-size: 0.95rem;
+    }
+  }
+
+  /* ── Mobile ───────────────────────────────────────────────────────── */
+  @media (max-width: 480px) {
+    .head h1 { font-size: 1.3rem; }
+    .blurb { font-size: 0.9rem; }
+    .switcher button,
+    .layer-toggle button {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+    }
+    .download-btn {
+      display: block;
+      padding: 0.85rem 1rem;
+    }
+    .dl-meta {
+      font-size: 0.7rem;
+    }
+  }
 </style>

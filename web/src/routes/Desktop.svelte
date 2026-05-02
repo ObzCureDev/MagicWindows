@@ -141,4 +141,67 @@
     font-size: 0.85rem;
     margin: 0.75rem 0 0;
   }
+
+  /* ── Tablet ───────────────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .head { padding: 0 1.25rem; margin-top: 1.5rem; }
+    .head h1 { font-size: 1.6rem; }
+    .lede { font-size: 0.95rem; }
+    .compare { padding: 0 1.25rem; }
+    th, td { padding: 0.65rem 0.75rem; font-size: 0.85rem; }
+    th:first-child, td:first-child { font-size: 0.8rem; }
+    .download-btn {
+      padding: 0.75rem 1.4rem;
+      font-size: 0.95rem;
+    }
+  }
+
+  /* ── Mobile ───────────────────────────────────────────────────────── */
+  @media (max-width: 480px) {
+    .head h1 { font-size: 1.4rem; }
+    .lede { font-size: 0.9rem; }
+
+    /* Collapse table to a stack: one row per feature, web/desktop side-by-side */
+    table, thead, tbody, tr, th, td { display: block; }
+    thead { display: none; }
+    tr {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      padding: 0.75rem;
+    }
+    tr:last-child td { border-bottom: 1px solid #e5e5ea; }
+    table {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+    }
+    td {
+      border: none !important;
+      padding: 0.25rem 0;
+      font-size: 0.9rem;
+    }
+    td:first-child {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid #f0f0f3 !important;
+    }
+    td:nth-child(2),
+    td:nth-child(3) {
+      display: inline-block;
+      width: auto;
+      text-align: left;
+      font-weight: 500;
+    }
+    td:nth-child(2)::before { content: "Web ZIP: "; color: #8e8e93; font-weight: 400; margin-right: 0.4rem; }
+    td:nth-child(3)::before { content: "Desktop: "; color: #8e8e93; font-weight: 400; margin-right: 0.4rem; margin-left: 1rem; }
+
+    .download-btn {
+      display: block;
+      padding: 0.85rem 1rem;
+    }
+  }
 </style>
