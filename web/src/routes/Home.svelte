@@ -3,7 +3,9 @@
 </script>
 
 <header class="hero">
-  <img class="hero-logo" src="/logo-256.png" alt="MagicWindows logo" width="96" height="96" />
+  <div class="hero-logo-wrap">
+    <img class="hero-logo" src="/logo-256.png" alt="MagicWindows logo" width="120" height="120" />
+  </div>
   <h1>Apple keyboard layouts on Windows</h1>
   <p class="lede">
     Plug your Apple Magic Keyboard into a Windows PC and the printed keys don't match
@@ -35,10 +37,20 @@
     padding: 0 1.25rem;
     text-align: center;
   }
-  .hero-logo {
-    width: 96px;
-    height: 96px;
+  .hero-logo-wrap {
+    display: inline-block;
+    padding: 14px 18px 18px;
     margin: 0 auto 1.25rem;
+    background: linear-gradient(135deg, #0066cc 0%, #003c7a 100%);
+    border-radius: 26px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 12px 30px rgba(0,102,204,0.28),
+      0 4px 10px rgba(0,0,0,0.12);
+  }
+  .hero-logo {
+    width: 120px;
+    height: 120px;
     display: block;
     image-rendering: -webkit-optimize-contrast;
   }
@@ -103,10 +115,14 @@
     .hero {
       margin: 2rem auto 1.5rem;
     }
-    .hero-logo {
-      width: 80px;
-      height: 80px;
+    .hero-logo-wrap {
+      padding: 12px 14px 14px;
       margin-bottom: 1rem;
+      border-radius: 22px;
+    }
+    .hero-logo {
+      width: 96px;
+      height: 96px;
     }
     .hero h1 {
       font-size: 2rem;
@@ -125,9 +141,13 @@
     .hero h1 {
       font-size: 1.65rem;
     }
+    .hero-logo-wrap {
+      padding: 10px 12px 12px;
+      border-radius: 18px;
+    }
     .hero-logo {
-      width: 72px;
-      height: 72px;
+      width: 88px;
+      height: 88px;
     }
     .lede {
       font-size: 0.95rem;
