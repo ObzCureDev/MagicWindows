@@ -1,4 +1,5 @@
 import type { Layout } from "@magicwindows/keyboard-visual";
+import type { Lang } from "./i18n.svelte";
 import frAzerty from "../../../layouts/apple-fr-azerty.json";
 import usQwerty from "../../../layouts/apple-us-qwerty.json";
 import ukQwerty from "../../../layouts/apple-uk-qwerty.json";
@@ -8,8 +9,10 @@ import itQwerty from "../../../layouts/apple-it-qwerty.json";
 
 export interface LayoutCard {
   id: string;
-  displayName: string;
-  blurb: string;
+  /** Display name per language. Layout JSONs already carry `name.{en,fr}`. */
+  name: Record<Lang, string>;
+  /** Description per language. Layout JSONs already carry `description.{en,fr}`. */
+  description: Record<Lang, string>;
   layout: Layout;
 }
 
@@ -24,13 +27,16 @@ const all: Array<{ id: string; raw: unknown }> = [
 
 export const layouts: Record<string, LayoutCard> = Object.fromEntries(
   all.map(({ id, raw }) => {
-    const r = raw as { name: { en: string }; description: { en: string } } & Layout;
+    const r = raw as {
+      name: Record<Lang, string>;
+      description: Record<Lang, string>;
+    } & Layout;
     return [
       id,
       {
         id,
-        displayName: r.name.en,
-        blurb: r.description.en,
+        name: { en: r.name.en, fr: r.name.fr },
+        description: { en: r.description.en, fr: r.description.fr },
         layout: r,
       },
     ];

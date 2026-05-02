@@ -4,6 +4,7 @@
   import Preview from "./routes/Preview.svelte";
   import Desktop from "./routes/Desktop.svelte";
   import { manifest } from "./lib/manifest";
+  import { i18n, t } from "./lib/i18n.svelte";
 
   let route = $state(parseHash(window.location.hash));
 
@@ -14,6 +15,13 @@
   $effect(() => {
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
+  });
+
+  // Sync the <html lang> attribute on first render so screen readers + search
+  // engines see the right initial language. The setter in i18n updates it on
+  // every subsequent toggle.
+  $effect(() => {
+    document.documentElement.lang = i18n.lang;
   });
 </script>
 
@@ -32,20 +40,34 @@
 
   <footer class="site-footer">
     <p class="site-footer__line">
-      Made by
+      {t("footer.madeBy")}
       <a href="https://mindvisionstudio.com" target="_blank" rel="noopener">MindVision Studio</a>
       <span class="dot" aria-hidden="true">·</span>
-      <a href="https://github.com/ObzCureDev/MagicWindows" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/ObzCureDev/MagicWindows" target="_blank" rel="noopener">{t("footer.github")}</a>
       <span class="dot" aria-hidden="true">·</span>
-      <a href="https://github.com/ObzCureDev/MagicWindows/issues" target="_blank" rel="noopener">Report a bug</a>
+      <a href="https://github.com/ObzCureDev/MagicWindows/issues" target="_blank" rel="noopener">{t("footer.bug")}</a>
       <span class="dot" aria-hidden="true">·</span>
       <span class="version">v{manifest.version}</span>
+      <span class="dot" aria-hidden="true">·</span>
+      <span class="lang-toggle" role="group" aria-label={t("footer.langToggleAriaLabel")}>
+        <button
+          type="button"
+          class="lang-btn"
+          class:active={i18n.lang === "en"}
+          aria-pressed={i18n.lang === "en"}
+          onclick={() => (i18n.lang = "en")}
+        >EN</button>
+        <span class="lang-sep" aria-hidden="true">/</span>
+        <button
+          type="button"
+          class="lang-btn"
+          class:active={i18n.lang === "fr"}
+          aria-pressed={i18n.lang === "fr"}
+          onclick={() => (i18n.lang = "fr")}
+        >FR</button>
+      </span>
     </p>
-    <p class="site-footer__sub">
-      MagicWindows is open source (MIT). Apple, Magic Keyboard, and macOS are
-      trademarks of Apple Inc. Windows is a trademark of Microsoft Corporation.
-      This project is not affiliated with either.
-    </p>
+    <p class="site-footer__sub">{t("footer.disclaimer")}</p>
   </footer>
 </div>
 
@@ -85,6 +107,38 @@
   .version {
     font-family: "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.78rem;
+  }
+
+  .lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .lang-btn {
+    background: transparent;
+    border: none;
+    padding: 0.1rem 0.35rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #8e8e93;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 100ms ease;
+  }
+  .lang-btn:hover { color: #1a1a1c; }
+  .lang-btn.active {
+    color: #0066cc;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .lang-sep {
+    color: #c7c7cc;
+    font-size: 0.7rem;
   }
   .site-footer__sub {
     max-width: 640px;

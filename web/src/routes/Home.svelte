@@ -1,31 +1,25 @@
 <script lang="ts">
   import { layouts, layoutIds } from "../lib/layouts";
+  import { i18n, t } from "../lib/i18n.svelte";
 </script>
 
 <header class="hero">
   <div class="hero-logo-wrap">
     <img class="hero-logo" src="/logo-256.png" alt="MagicWindows logo" width="120" height="120" />
   </div>
-  <h1>Apple keyboard layouts on Windows</h1>
-  <p class="lede">
-    Plug your Apple Magic Keyboard into a Windows PC and the printed keys don't match
-    what you type. <strong>@</strong>, <strong>#</strong>, accented letters, even
-    <strong>Shift+Enter</strong> — Windows ignores half the keycap labels.
-  </p>
-  <p class="lede">
-    Download the matching layout for your keyboard, double-click the installer,
-    restart. Done.
-  </p>
-  <a class="cta-secondary" href="#/desktop">Want auto-detect &amp; advanced options? &rarr;</a>
+  <h1>{t("home.h1")}</h1>
+  <p class="lede">{t("home.lede1")}</p>
+  <p class="lede">{t("home.lede2")}</p>
+  <a class="cta-secondary" href="#/desktop">{t("home.secondaryCta")}</a>
 </header>
 
 <section class="grid">
   {#each layoutIds as id}
     {@const card = layouts[id]}
     <a class="card" href={`#/preview/${id}`}>
-      <h2>{card.displayName}</h2>
-      <p>{card.blurb}</p>
-      <span class="card-cta">Preview &amp; download &rarr;</span>
+      <h2>{card.name[i18n.lang]}</h2>
+      <p>{card.description[i18n.lang]}</p>
+      <span class="card-cta">{t("home.cardCta")}</span>
     </a>
   {/each}
 </section>

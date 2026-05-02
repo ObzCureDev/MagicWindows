@@ -1,14 +1,20 @@
 <script lang="ts">
-  // No reactive state — purely static pitch page.
+  import { t } from "../lib/i18n.svelte";
+
+  const rows = [
+    { key: "desktop.row.installLayout" as const, web: true,  desktop: true  },
+    { key: "desktop.row.autoDetect" as const,    web: false, desktop: true  },
+    { key: "desktop.row.modifiers" as const,     web: false, desktop: true  },
+    { key: "desktop.row.f12" as const,           web: false, desktop: true  },
+    { key: "desktop.row.healthCheck" as const,   web: false, desktop: true  },
+    { key: "desktop.row.uninstall" as const,     web: false, desktop: true  },
+  ];
 </script>
 
 <header class="head">
-  <a class="back" href="#/">&larr; All layouts</a>
-  <h1>The desktop app</h1>
-  <p class="lede">
-    The web ZIP installs <strong>only the layout</strong>. The desktop app does the same
-    install, plus a handful of features that need a native client.
-  </p>
+  <a class="back" href="#/">{t("desktop.back")}</a>
+  <h1>{t("desktop.h1")}</h1>
+  <p class="lede">{t("desktop.lede")}</p>
 </header>
 
 <section class="compare">
@@ -16,50 +22,27 @@
     <thead>
       <tr>
         <th></th>
-        <th>Web ZIP</th>
-        <th>Desktop app</th>
+        <th>{t("desktop.col.web")}</th>
+        <th>{t("desktop.col.desktop")}</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>Install a layout</td>
-        <td>&#10003;</td>
-        <td>&#10003;</td>
-      </tr>
-      <tr>
-        <td>Auto-detect your keyboard</td>
-        <td>&mdash;</td>
-        <td>&#10003;</td>
-      </tr>
-      <tr>
-        <td>Mac-style modifier toggles (Cmd&harr;Ctrl, Caps&rarr;Ctrl)</td>
-        <td>&mdash;</td>
-        <td>&#10003;</td>
-      </tr>
-      <tr>
-        <td>F12 / Eject remap (Calculator, Search, Mute&hellip;)</td>
-        <td>&mdash;</td>
-        <td>&#10003;</td>
-      </tr>
-      <tr>
-        <td>Health check after install</td>
-        <td>&mdash;</td>
-        <td>&#10003;</td>
-      </tr>
-      <tr>
-        <td>One-click uninstall UI</td>
-        <td>&mdash;</td>
-        <td>&#10003;</td>
-      </tr>
+      {#each rows as row}
+        <tr>
+          <td>{t(row.key)}</td>
+          <td>{row.web ? "✓" : "—"}</td>
+          <td>{row.desktop ? "✓" : "—"}</td>
+        </tr>
+      {/each}
     </tbody>
   </table>
 </section>
 
 <section class="dl">
   <a class="download-btn" href="https://github.com/ObzCureDev/MagicWindows/releases/latest" target="_blank" rel="noopener">
-    Download the desktop app
+    {t("desktop.cta")}
   </a>
-  <p class="dl-note">Latest release on GitHub. Windows 10/11, x64.</p>
+  <p class="dl-note">{t("desktop.note")}</p>
 </section>
 
 <style>

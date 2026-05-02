@@ -3,6 +3,7 @@
   import { layouts, layoutIds } from "../lib/layouts";
   import { downloadsFor, ARCHES, ARCH_LABEL } from "../lib/manifest";
   import { navigate } from "../lib/router";
+  import { i18n, t } from "../lib/i18n.svelte";
 
   interface Props {
     layoutId: string;
@@ -24,40 +25,40 @@
   }
 
   const layers = [
-    { k: "base" as const, label: "Base" },
-    { k: "shift" as const, label: "Shift" },
-    { k: "altgr" as const, label: "AltGr" },
-    { k: "altgrShift" as const, label: "AltGr+Shift" },
+    { k: "base" as const, labelKey: "preview.layer.base" as const },
+    { k: "shift" as const, labelKey: "preview.layer.shift" as const },
+    { k: "altgr" as const, labelKey: "preview.layer.altgr" as const },
+    { k: "altgrShift" as const, labelKey: "preview.layer.altgrShift" as const },
   ];
 </script>
 
 {#if card}
   <header class="head">
-    <a class="back" href="#/">&larr; All layouts</a>
-    <h1>{card.displayName}</h1>
-    <p class="blurb">{card.blurb}</p>
+    <a class="back" href="#/">{t("preview.back")}</a>
+    <h1>{card.name[i18n.lang]}</h1>
+    <p class="blurb">{card.description[i18n.lang]}</p>
   </header>
 
-  <nav class="switcher" aria-label="Choose a layout">
+  <nav class="switcher" aria-label={t("preview.switcherLabel")}>
     {#each layoutIds as id}
       <button
         type="button"
         class:active={id === layoutId}
         onclick={() => pickLayout(id)}
       >
-        {layouts[id].displayName}
+        {layouts[id].name[i18n.lang]}
       </button>
     {/each}
   </nav>
 
-  <div class="layer-toggle" role="group" aria-label="Modifier layer">
+  <div class="layer-toggle" role="group" aria-label={t("preview.layerLabel")}>
     {#each layers as opt}
       <button
         type="button"
         class:active={activeLayer === opt.k}
         onclick={() => (activeLayer = opt.k)}
       >
-        {opt.label}
+        {t(opt.labelKey)}
       </button>
     {/each}
   </div>
@@ -68,7 +69,7 @@
 
   <div class="download-bar">
     {#if hasAny}
-      <p class="dl-prompt">Pick the build that matches your PC:</p>
+      <p class="dl-prompt">{t("preview.dlPrompt")}</p>
       <div class="dl-row">
         {#each ARCHES as arch}
           {@const dl = downloads[arch]}
@@ -80,17 +81,17 @@
           {:else}
             <span class="download-btn download-btn--missing" aria-disabled="true">
               <span class="dl-arch">{ARCH_LABEL[arch]}</span>
-              <span class="dl-size">unavailable</span>
+              <span class="dl-size">{t("preview.dlUnavailableArch")}</span>
             </span>
           {/if}
         {/each}
       </div>
       <p class="dl-help">
-        <strong>x64</strong> for most PCs (Intel / AMD).
-        <strong>ARM64</strong> for Snapdragon / Surface Pro X / Copilot+ PCs.
+        <strong>x64</strong> {t("preview.dlHelpX64")}
+        <strong>ARM64</strong> {t("preview.dlHelpArm64")}
       </p>
     {:else}
-      <p class="dl-unavailable">Downloads temporarily unavailable. Please try again later.</p>
+      <p class="dl-unavailable">{t("preview.dlUnavailable")}</p>
     {/if}
   </div>
 {/if}
