@@ -1,0 +1,10 @@
+name = "magicwindows"
+compatibility_date = "2026-05-01"
+
+# Cloudflare Workers static-assets deployment for the MagicWindows Web SPA.
+# The Vite build outputs web/dist/; Workers serves it as static files.
+# `single-page-application` rewrites unknown paths to /index.html so direct
+# visits like dl.mindvisionstudio.com/preview still hit the SPA shell.
+[assets]
+directory = "./web/dist"
+not_found_handling = "single-page-application"
