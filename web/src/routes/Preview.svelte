@@ -1,7 +1,7 @@
 <script lang="ts">
   import { KeyboardVisual } from "@magicwindows/keyboard-visual";
   import { layouts, layoutIds } from "../lib/layouts";
-  import { downloadFor } from "../lib/manifest";
+  import { downloadsFor, ARCHES, ARCH_LABEL } from "../lib/manifest";
   import { navigate } from "../lib/router";
 
   interface Props {
@@ -12,7 +12,8 @@
   let activeLayer = $state<"base" | "shift" | "altgr" | "altgrShift">("base");
 
   const card = $derived(layouts[layoutId]);
-  const download = $derived(card ? downloadFor(layoutId) : null);
+  const downloads = $derived(card ? downloadsFor(layoutId) : {});
+  const hasAny = $derived(ARCHES.some((a) => downloads[a]));
 
   $effect(() => {
     if (!card) navigate({ kind: "home" });
@@ -66,13 +67,30 @@
   </div>
 
   <div class="download-bar">
-    {#if download}
-      <a class="download-btn" href={download.url} download>
-        Download for Windows ({(download.size / 1024).toFixed(0)} KB)
-      </a>
-      <p class="dl-meta">SHA-256: <code>{download.sha256.slice(0, 16)}…</code></p>
+    {#if hasAny}
+      <p class="dl-prompt">Pick the build that matches your PC:</p>
+      <div class="dl-row">
+        {#each ARCHES as arch}
+          {@const dl = downloads[arch]}
+          {#if dl}
+            <a class="download-btn" href={dl.url} download>
+              <span class="dl-arch">{ARCH_LABEL[arch]}</span>
+              <span class="dl-size">{(dl.size / 1024).toFixed(0)} KB</span>
+            </a>
+          {:else}
+            <span class="download-btn download-btn--missing" aria-disabled="true">
+              <span class="dl-arch">{ARCH_LABEL[arch]}</span>
+              <span class="dl-size">unavailable</span>
+            </span>
+          {/if}
+        {/each}
+      </div>
+      <p class="dl-help">
+        <strong>x64</strong> for most PCs (Intel / AMD).
+        <strong>ARM64</strong> for Snapdragon / Surface Pro X / Copilot+ PCs.
+      </p>
     {:else}
-      <p class="dl-unavailable">Download temporarily unavailable. Please try again later.</p>
+      <p class="dl-unavailable">Downloads temporarily unavailable. Please try again later.</p>
     {/if}
   </div>
 {/if}
@@ -149,28 +167,62 @@
     padding: 0 1.5rem;
     text-align: center;
   }
+  .dl-prompt {
+    color: #1a1a1c;
+    font-size: 0.95rem;
+    margin: 0 0 0.75rem;
+    font-weight: 500;
+  }
+  .dl-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+  }
   .download-btn {
-    display: inline-block;
-    padding: 0.85rem 1.75rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.7rem 1.4rem;
     background: #0066cc;
     color: #ffffff;
-    border-radius: 999px;
+    border-radius: 14px;
     text-decoration: none;
     font-weight: 600;
     box-shadow: 0 4px 12px rgba(0,102,204,0.25);
     transition: transform 100ms ease, box-shadow 100ms ease;
+    min-width: 140px;
   }
   .download-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(0,102,204,0.32);
   }
-  .dl-meta {
+  .download-btn--missing {
+    background: #e5e5ea;
     color: #8e8e93;
-    font-size: 0.8rem;
-    margin: 0.5rem 0 0;
+    box-shadow: none;
+    cursor: not-allowed;
   }
-  .dl-meta code {
-    font-family: "SF Mono", Menlo, Consolas, monospace;
+  .download-btn--missing:hover { transform: none; box-shadow: none; }
+  .dl-arch {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+  .dl-size {
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.85;
+  }
+  .dl-help {
+    color: #6e6e73;
+    font-size: 0.8rem;
+    margin: 0.85rem 0 0;
+    line-height: 1.5;
+  }
+  .dl-help strong {
+    color: #1a1a1c;
+    font-weight: 600;
   }
   .dl-unavailable {
     color: #b91c1c;
@@ -213,12 +265,16 @@
       padding: 0.3rem 0.6rem;
       font-size: 0.75rem;
     }
+    .dl-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
     .download-btn {
-      display: block;
+      min-width: 0;
       padding: 0.85rem 1rem;
     }
-    .dl-meta {
-      font-size: 0.7rem;
+    .dl-help {
+      font-size: 0.75rem;
     }
   }
 </style>

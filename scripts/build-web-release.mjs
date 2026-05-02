@@ -16,11 +16,15 @@ import archiver from "archiver";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..");
 const LAYOUTS_DIR = join(REPO_ROOT, "layouts");
-const DLL_OUT_DIR = join(REPO_ROOT, "target", "kbd_dlls");
+const DLL_BASE_DIR = join(REPO_ROOT, "target", "kbd_dlls");
 const PAYLOAD_DIR = join(REPO_ROOT, "scripts", "web");
 const STAGING_DIR = join(REPO_ROOT, "target", "web-release");
 const MANIFEST_PATH = join(REPO_ROOT, "web", "public", "manifest.json");
 const SRC_TAURI = join(REPO_ROOT, "src-tauri");
+
+// Architectures we ship per layout. Order is the user-facing presentation
+// order on the web (x64 first since it covers the vast majority of Windows PCs).
+const ARCHES = ["x64", "arm64"];
 
 const R2_BUCKET = "magicwindows-downloads";
 // Custom domain bound to the R2 bucket via Cloudflare Pages-style attachment.
@@ -69,42 +73,50 @@ function loadLayouts() {
 }
 
 function ensureDllsBuilt(layouts) {
-  console.log("→ Triggering cargo build (compiles layouts/*.json into kbd_dlls/*.dll via build.rs)...");
+  console.log("→ Triggering cargo build (compiles layouts/*.json into kbd_dlls/{x64,arm64}/*.dll via build.rs)...");
   execFileSync("cargo", ["build", "--manifest-path", join(SRC_TAURI, "Cargo.toml")], {
     stdio: "inherit",
   });
-  if (!existsSync(DLL_OUT_DIR)) {
-    throw new Error(`DLL output dir missing after cargo build: ${DLL_OUT_DIR}. Are you on Windows with MSVC?`);
-  }
   const missing = [];
-  for (const layout of layouts) {
-    const dllName = layout.data.dllName;
-    if (!dllName) continue; // layoutMetadata will throw later with a clearer error
-    const dllPath = join(DLL_OUT_DIR, `${dllName}.dll`);
-    if (!existsSync(dllPath)) {
-      missing.push(`${layout.id} → ${dllName}.dll`);
+  for (const arch of ARCHES) {
+    const archDir = join(DLL_BASE_DIR, arch);
+    if (!existsSync(archDir)) {
+      missing.push(`<entire ${arch} directory> ${archDir}`);
+      continue;
+    }
+    for (const layout of layouts) {
+      const dllName = layout.data.dllName;
+      if (!dllName) continue;
+      const dllPath = join(archDir, `${dllName}.dll`);
+      if (!existsSync(dllPath)) {
+        missing.push(`${arch}/${layout.id} → ${dllName}.dll`);
+      }
     }
   }
   if (missing.length > 0) {
     throw new Error(
-      `cargo build did not produce DLLs for ${missing.length} layout(s):\n  ` +
+      `cargo build did not produce DLLs for ${missing.length} target(s):\n  ` +
       missing.join("\n  ") +
-      `\nCheck src-tauri/build.rs warnings or run from src-tauri/ to see compiler errors.`
+      `\nFor ARM64, ensure 'MSVC v143 - VS 2022 C++ ARM64 build tools' is installed.`
     );
   }
 }
 
-async function packageOne(layoutEntry, version) {
+async function packageOne(layoutEntry, arch, version) {
   const meta = layoutMetadata(layoutEntry.data);
-  const dllPath = join(DLL_OUT_DIR, `${meta.dllName}.dll`);
+  const dllPath = join(DLL_BASE_DIR, arch, `${meta.dllName}.dll`);
   if (!existsSync(dllPath)) {
     throw new Error(`DLL not produced: ${dllPath}`);
   }
 
-  const zipName = `magicwindows-${layoutEntry.id}-${version}.zip`;
+  const zipName = `magicwindows-${layoutEntry.id}-${arch}-${version}.zip`;
   const zipPath = join(STAGING_DIR, zipName);
 
-  const layoutJson = JSON.stringify(meta, null, 2);
+  // The sidecar carries the architecture so the install script (or a future
+  // verifier) can sanity-check it matches the host. The PS1 itself doesn't
+  // gate on it for V1 — Windows refuses to load a wrong-arch keyboard DLL
+  // anyway with a clear error in Settings.
+  const layoutJson = JSON.stringify({ ...meta, arch }, null, 2);
 
   await new Promise((resolveZip, rejectZip) => {
     const out = createWriteStream(zipPath);
@@ -127,6 +139,7 @@ async function packageOne(layoutEntry, version) {
   const buf = readFileSync(zipPath);
   return {
     layoutId: layoutEntry.id,
+    arch,
     zipPath,
     zipName,
     size: buf.length,
@@ -156,16 +169,26 @@ async function main() {
   ensureDllsBuilt(layouts);
   console.log(`Found ${layouts.length} layouts\n`);
 
+  // downloads schema (V2):
+  //   { [layoutId]: { [arch]: { url, size, sha256 } } }
+  // The web SPA reads this and renders one button per arch on the Preview page.
   const downloads = {};
   for (const layout of layouts) {
-    console.log(`→ Packaging ${layout.id}...`);
-    const result = await packageOne(layout, version);
-    if (!dryRun) {
-      uploadToR2(result.zipPath, result.zipName);
+    downloads[layout.id] = {};
+    for (const arch of ARCHES) {
+      console.log(`→ Packaging ${layout.id} (${arch})...`);
+      const result = await packageOne(layout, arch, version);
+      if (!dryRun) {
+        uploadToR2(result.zipPath, result.zipName);
+      }
+      const url = `${R2_PUBLIC_BASE}/${result.zipName}`;
+      downloads[layout.id][arch] = manifestEntry({
+        url,
+        size: result.size,
+        sha256: result.sha256,
+      });
+      console.log(`  ${arch}: ${result.size} bytes, sha256 ${result.sha256.slice(0, 16)}…`);
     }
-    const url = `${R2_PUBLIC_BASE}/${result.zipName}`;
-    downloads[layout.id] = manifestEntry({ url, size: result.size, sha256: result.sha256 });
-    console.log(`  ${result.size} bytes, sha256 ${result.sha256.slice(0, 16)}…`);
   }
 
   const manifest = {

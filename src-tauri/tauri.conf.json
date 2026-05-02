@@ -36,7 +36,7 @@
     ],
     "resources": {
       "../layouts/*.json": "layouts/",
-      "../target/kbd_dlls/*.dll": "kbd_dlls/"
+      "../target/kbd_dlls/x64/*.dll": "kbd_dlls/"
     }
   }
 }

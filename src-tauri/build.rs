@@ -34,6 +34,42 @@ fn main() {
 mod windows {
     use std::{env, fs, path::{Path, PathBuf}, process::Command};
 
+    /// Target architectures we build keyboard layout DLLs for.
+    /// Windows on ARM cannot load x64 keyboard DLLs (Win32K is not emulated),
+    /// so a native ARM64 build is required to support Surface Pro X / Snapdragon
+    /// machines. The desktop app itself stays x64 for now; ARM64 DLLs are
+    /// shipped in the web download ZIPs.
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    pub(crate) enum Arch {
+        X64,
+        Arm64,
+    }
+
+    impl Arch {
+        fn subdir(self) -> &'static str {
+            match self { Self::X64 => "x64", Self::Arm64 => "arm64" }
+        }
+        fn host_target(self) -> (&'static str, &'static str) {
+            // (host, target) under VC/Tools/MSVC/<ver>/bin/Host<host>/<target>/
+            match self {
+                Self::X64   => ("x64", "x64"),
+                Self::Arm64 => ("x64", "arm64"),
+            }
+        }
+        fn lib_dir(self) -> &'static str {
+            match self { Self::X64 => "x64", Self::Arm64 => "arm64" }
+        }
+        fn arch_define(self) -> &'static str {
+            match self { Self::X64 => "/D_AMD64_=1", Self::Arm64 => "/D_ARM64_=1" }
+        }
+        fn vswhere_required(self) -> &'static str {
+            match self {
+                Self::X64   => "Microsoft.VisualCpp.Tools.HostX64.TargetX64",
+                Self::Arm64 => "Microsoft.VisualCpp.Tools.HostX64.TargetARM64",
+            }
+        }
+    }
+
     pub fn compile_keyboard_dlls() -> Result<(), String> {
         let manifest_dir = PathBuf::from(
             env::var("CARGO_MANIFEST_DIR").map_err(|_| "CARGO_MANIFEST_DIR not set")?,
@@ -48,20 +84,19 @@ mod windows {
         let c_build_dir = out_dir.join("kbd_c_build");
         fs::create_dir_all(&c_build_dir).map_err(|e| format!("create kbd_c_build dir: {e}"))?;
 
-        // Final DLL destination: target/kbd_dlls/ (outside src-tauri so the
-        // Tauri dev watcher doesn't see them changing and loop constantly;
-        // tauri.conf.json bundles them from ../target/kbd_dlls/*.dll).
-        let dll_dest_dir = manifest_dir
+        // Final DLL destination: target/kbd_dlls/<arch>/ (outside src-tauri so
+        // the Tauri dev watcher doesn't see them changing and loop constantly;
+        // tauri.conf.json bundles only the x64 DLLs from
+        // ../target/kbd_dlls/x64/*.dll for the desktop installer).
+        let dll_base_dir = manifest_dir
             .parent()
             .ok_or("cannot get parent of manifest dir")?
             .join("target")
             .join("kbd_dlls");
-        fs::create_dir_all(&dll_dest_dir).map_err(|e| format!("create kbd_dlls dir: {e}"))?;
 
-        let msvc = MsvcPaths::find()?;
-
+        // Load all layouts once, so we can iterate per-architecture.
+        let mut layouts: Vec<(PathBuf, klc_codegen::Layout)> = Vec::new();
         let entries = fs::read_dir(&layouts_dir).map_err(|e| format!("read layouts dir: {e}"))?;
-
         for entry in entries {
             let entry = entry.map_err(|e| format!("dir entry: {e}"))?;
             let path = entry.path();
@@ -71,27 +106,56 @@ mod windows {
             if path.file_name().map(|n| n == "schema.json").unwrap_or(false) {
                 continue;
             }
-
             let json = fs::read_to_string(&path)
                 .map_err(|e| format!("read {}: {e}", path.display()))?;
             let layout: klc_codegen::Layout = serde_json::from_str(&json)
                 .map_err(|e| format!("parse {}: {e}", path.display()))?;
+            layouts.push((path, layout));
+        }
 
-            let dll_path = dll_dest_dir.join(format!("{}.dll", layout.dll_name));
+        for arch in [Arch::X64, Arch::Arm64] {
+            let msvc = match MsvcPaths::find(arch) {
+                Ok(m) => m,
+                Err(e) => {
+                    if arch == Arch::Arm64 {
+                        // ARM64 toolchain is optional. Warn and skip — the build
+                        // succeeds without ARM64 DLLs and the desktop app keeps working.
+                        println!(
+                            "cargo:warning=ARM64 toolchain not found; skipping ARM64 DLLs ({e})"
+                        );
+                        continue;
+                    }
+                    return Err(e);
+                }
+            };
 
-            let c_src = klc_codegen::generate_kbd_c(&layout);
-            let c_path = c_build_dir.join(format!("{}.c", layout.dll_name));
-            fs::write(&c_path, &c_src).map_err(|e| format!("write {}: {e}", c_path.display()))?;
+            let dll_dest_dir = dll_base_dir.join(arch.subdir());
+            fs::create_dir_all(&dll_dest_dir)
+                .map_err(|e| format!("create {} dir: {e}", dll_dest_dir.display()))?;
 
-            compile_dll(&msvc, &c_path, &dll_path, &c_build_dir).map_err(|e| {
+            for (layout_path, layout) in &layouts {
+                let dll_path = dll_dest_dir.join(format!("{}.dll", layout.dll_name));
+
+                let c_src = klc_codegen::generate_kbd_c(layout);
+                let c_path = c_build_dir.join(format!("{}-{}.c", layout.dll_name, arch.subdir()));
+                fs::write(&c_path, &c_src)
+                    .map_err(|e| format!("write {}: {e}", c_path.display()))?;
+
+                compile_dll(&msvc, arch, &c_path, &dll_path, &c_build_dir).map_err(|e| {
+                    println!(
+                        "cargo:warning=Failed to compile {} DLL for {} ({}): {e}",
+                        arch.subdir(),
+                        layout.dll_name,
+                        layout_path.display(),
+                    );
+                    e
+                })?;
+
                 println!(
-                    "cargo:warning=Failed to compile DLL for {}: {e}",
-                    layout.dll_name
+                    "cargo:warning=Compiled keyboard DLL: {}",
+                    dll_path.display()
                 );
-                e
-            })?;
-
-            println!("cargo:warning=Compiled keyboard DLL: {}", dll_path.display());
+            }
         }
 
         Ok(())
@@ -99,6 +163,7 @@ mod windows {
 
     fn compile_dll(
         msvc: &MsvcPaths,
+        arch: Arch,
         c_path: &Path,
         dll_path: &Path,
         obj_dir: &Path,
@@ -111,8 +176,8 @@ mod windows {
         );
 
         // ── Step 1: Compile C → OBJ ─────────────────────────────────────────
-        // The keyboard DLL is always compiled for the host x64 architecture.
-        // winnt.h requires one of _X86_, _AMD64_, _ARM_, or _ARM64_ to be defined.
+        // winnt.h requires one of _X86_, _AMD64_, _ARM_, or _ARM64_ to be
+        // defined to pick the architecture-specific type definitions.
         let mut cl = Command::new(&msvc.cl);
         cl.env("INCLUDE", &msvc.include_dirs)
             .env("LIB", &msvc.lib_dirs)
@@ -122,7 +187,7 @@ mod windows {
             .arg("/Zl") // Omit default library name from .obj
             .arg("/c") // Compile only (no link)
             .arg("/GS-") // Disable buffer security checks (no CRT)
-            .arg("/D_AMD64_=1")
+            .arg(arch.arch_define())
             .arg("/DWIN32")
             .arg("/D_WINDOWS")
             .arg(format!("/Fo{}", obj_path.display()))
@@ -189,19 +254,20 @@ mod windows {
     }
 
     impl MsvcPaths {
-        /// Discover the MSVC toolchain.
+        /// Discover the MSVC toolchain for `arch`.
         ///
-        /// Rust on Windows is always built against an MSVC toolchain, so `cl.exe`
-        /// and `link.exe` must exist somewhere. Probe `vswhere.exe` first,
-        /// then fall back to the common VS 2022 and VS 2019 install locations.
-        pub fn find() -> Result<Self, String> {
-            if let Ok(paths) = Self::find_via_vswhere() {
+        /// Probes `vswhere.exe` first (latest VS install with the right
+        /// component requirement), then falls back to the common VS 2022 and
+        /// VS 2019 install locations. Returns Err when the architecture's
+        /// toolchain is not installed (e.g. ARM64 cross-compiler missing).
+        pub fn find(arch: Arch) -> Result<Self, String> {
+            if let Ok(paths) = Self::find_via_vswhere(arch) {
                 return Ok(paths);
             }
-            Self::find_via_known_paths()
+            Self::find_via_known_paths(arch)
         }
 
-        fn find_via_vswhere() -> Result<Self, String> {
+        fn find_via_vswhere(arch: Arch) -> Result<Self, String> {
             let vswhere_candidates = [
                 r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe",
                 r"C:\Program Files\Microsoft Visual Studio\Installer\vswhere.exe",
@@ -216,7 +282,7 @@ mod windows {
                 .args([
                     "-latest",
                     "-requires",
-                    "Microsoft.VisualCpp.Tools.HostX64.TargetX64",
+                    arch.vswhere_required(),
                     "-property",
                     "installationPath",
                 ])
@@ -229,13 +295,16 @@ mod windows {
 
             let install_root = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if install_root.is_empty() {
-                return Err("vswhere returned empty path".into());
+                return Err(format!(
+                    "vswhere found no install with {}",
+                    arch.vswhere_required()
+                ));
             }
 
-            Self::from_vs_install_root(&install_root)
+            Self::from_vs_install_root(&install_root, arch)
         }
 
-        fn find_via_known_paths() -> Result<Self, String> {
+        fn find_via_known_paths(arch: Arch) -> Result<Self, String> {
             let candidates: &[&str] = &[
                 r"C:\Program Files\Microsoft Visual Studio\2022\Community",
                 r"C:\Program Files\Microsoft Visual Studio\2022\Professional",
@@ -249,16 +318,16 @@ mod windows {
 
             for root in candidates {
                 if Path::new(root).exists() {
-                    if let Ok(paths) = Self::from_vs_install_root(root) {
+                    if let Ok(paths) = Self::from_vs_install_root(root, arch) {
                         return Ok(paths);
                     }
                 }
             }
 
-            Err("No MSVC installation found".into())
+            Err(format!("No MSVC {} toolchain found", arch.subdir()))
         }
 
-        fn from_vs_install_root(root: &str) -> Result<Self, String> {
+        fn from_vs_install_root(root: &str, arch: Arch) -> Result<Self, String> {
             let vc_tools = PathBuf::from(root).join("VC").join("Tools").join("MSVC");
             if !vc_tools.exists() {
                 return Err(format!("{} does not contain VC/Tools/MSVC", root));
@@ -276,8 +345,13 @@ mod windows {
                 .ok_or_else(|| format!("no MSVC version in {}", vc_tools.display()))?
                 .clone();
 
-            // For x64 Rust targets we want Hostx64/x64.
-            let bin_dir = msvc_ver.join("bin").join("Hostx64").join("x64");
+            // bin/Host<host>/<target>/cl.exe — host is always x64 on our build
+            // machines; target depends on the arch we want DLLs for.
+            let (host, target) = arch.host_target();
+            let bin_dir = msvc_ver
+                .join("bin")
+                .join(format!("Host{host}"))
+                .join(target);
             if !bin_dir.exists() {
                 return Err(format!("{} does not exist", bin_dir.display()));
             }
@@ -302,17 +376,24 @@ mod windows {
                 sdk_include.join("ucrt").display(),
             );
 
-            let msvc_lib = msvc_ver.join("lib").join("x64");
+            let msvc_lib = msvc_ver.join("lib").join(arch.lib_dir());
             let lib_dirs = format!(
                 "{};{};{}",
                 msvc_lib.display(),
-                sdk_lib.join("um").join("x64").display(),
-                sdk_lib.join("ucrt").join("x64").display(),
+                sdk_lib.join("um").join(arch.lib_dir()).display(),
+                sdk_lib.join("ucrt").join(arch.lib_dir()).display(),
             );
 
-            // PATH must include the bin dir so cl.exe can find its DLLs (c1.dll etc.).
+            // PATH must include the host x64 bin dir so cl.exe can find its
+            // DLLs (c1.dll etc.) — these live next to the host x64 cl, not
+            // the cross-compile target dir.
+            let host_x64_bin = msvc_ver.join("bin").join(format!("Host{host}")).join(host);
             let system_path = env::var("PATH").unwrap_or_default();
-            let path = format!("{};{system_path}", bin_dir.display());
+            let path = format!(
+                "{};{};{system_path}",
+                bin_dir.display(),
+                host_x64_bin.display()
+            );
 
             Ok(Self {
                 cl,
