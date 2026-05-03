@@ -537,10 +537,14 @@
   }
 
   /* ── Responsive scaling wrapper ──────────────────────────────────────── */
+  /* Center via auto margins on the body, NOT via justify-content. With
+     justify-content: center on a flex container, when the inner content is
+     wider than the viewport the left side is clipped (the layout engine
+     anchors at the center and grows symmetrically into negative space).
+     auto margins collapse to 0 on overflow so scroll starts at the left edge. */
   .kbd-scaler {
     width: 100%;
     display: flex;
-    justify-content: center;
     align-items: center;
     overflow-x: auto;
     padding: 8px 0;
@@ -548,6 +552,7 @@
 
   /* ── Keyboard body (the aluminum slab) ───────────────────────────────── */
   .kbd-body {
+    margin-inline: auto;
     display: inline-flex;
     flex-direction: column;
     gap: var(--gap);
