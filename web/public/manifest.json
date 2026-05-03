@@ -1,77 +1,77 @@
 {
-  "version": "0.3.0",
-  "generatedAt": "2026-05-02T14:33:23.747Z",
+  "version": "0.4.0",
+  "generatedAt": "2026-05-03T07:30:20.558Z",
   "downloads": {
     "apple-de-qwertz": {
       "x64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-de-qwertz-x64-0.3.0.zip",
-        "size": 6978,
-        "sha256": "e88d6d5ce6b479b9300a7328e2bf0b0b2f9b0272bf416d4496e7900ad512fab3"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-de-qwertz-x64-0.4.0.zip",
+        "size": 6977,
+        "sha256": "b9e1446529fa51da17bccd184d329f15a08de2cb6b211ce2eb8746be57f10ead"
       },
       "arm64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-de-qwertz-arm64-0.3.0.zip",
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-de-qwertz-arm64-0.4.0.zip",
         "size": 6954,
-        "sha256": "675fc5ed861dc02b1e4cb94fc1d67583a3019aca1812e5875b06832aec5b243b"
+        "sha256": "9dd598330adde8b4dbb8371a6eb36e5cd7cd92f932e88cd4500162214e2bc698"
       }
     },
     "apple-es-qwerty": {
       "x64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-es-qwerty-x64-0.3.0.zip",
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-es-qwerty-x64-0.4.0.zip",
         "size": 6998,
-        "sha256": "771ff15fa2acc3d176e4b2b40d017fd7c9a4c98c075ca8dae91042101ce24a96"
+        "sha256": "5c3b6fe1a336892ffe15e60fa6e8538c701f6089c5cbc4ed567c2b6082c671df"
       },
       "arm64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-es-qwerty-arm64-0.3.0.zip",
-        "size": 6980,
-        "sha256": "4690817346a39bdcc2508769754a233aa992860e42ca620015e941fffae87175"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-es-qwerty-arm64-0.4.0.zip",
+        "size": 6979,
+        "sha256": "f1a8ca5eed10dffa32f2893dac0f851c4ba5bd64d11a2d79645dc97bd1162faa"
       }
     },
     "apple-fr-azerty": {
       "x64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-fr-azerty-x64-0.3.0.zip",
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-fr-azerty-x64-0.4.0.zip",
         "size": 6880,
-        "sha256": "56edd7e7e89527888a451b7ae87559b91399dd2bcacf2684f04e73b7bccdbce3"
+        "sha256": "ad5c4917bc9334e404c908c7f71fd92e8fe2c67f3e88c283bad161f973223382"
       },
       "arm64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-fr-azerty-arm64-0.3.0.zip",
-        "size": 6855,
-        "sha256": "91718e0d1b615ea7d9f55e02b60ed96cd56cf1202d05fd31b82d25a98f709ff5"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-fr-azerty-arm64-0.4.0.zip",
+        "size": 6853,
+        "sha256": "de5fa632216721f20dc4a263c6cfb17d202e231c30b8abb800968619be29f457"
       }
     },
     "apple-it-qwerty": {
       "x64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-it-qwerty-x64-0.3.0.zip",
-        "size": 6760,
-        "sha256": "220b5673bd33b1b8bb148a1a8f6a913d41e58a96b5076a688ff67e06b4578710"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-it-qwerty-x64-0.4.0.zip",
+        "size": 6761,
+        "sha256": "0c1492916404be03571f09556002aec5cae8afb9874b987503ed1bc4cbe81fce"
       },
       "arm64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-it-qwerty-arm64-0.3.0.zip",
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-it-qwerty-arm64-0.4.0.zip",
         "size": 6736,
-        "sha256": "05940e8d84facca038891536a89dac54dc52baebd00f8e9e801af5b1dca83d93"
+        "sha256": "a4501658ea805dbe1847e4a384c9d6d5c5e85742f13b30872afaa4b2c7f0400e"
       }
     },
     "apple-uk-qwerty": {
       "x64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-uk-qwerty-x64-0.3.0.zip",
-        "size": 7009,
-        "sha256": "6fc762e6a8b7018f63e350984eee80be76d913be19afa8d514355d98c8c1721c"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-uk-qwerty-x64-0.4.0.zip",
+        "size": 7007,
+        "sha256": "993886d2eb3c1093135e38e4bea2ed5e335c18535a089a0da8eded1dcad0fe0e"
       },
       "arm64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-uk-qwerty-arm64-0.3.0.zip",
-        "size": 6989,
-        "sha256": "40caaa2a305400a79965822ac9308f38fa95965107d1169ab061a8a904071603"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-uk-qwerty-arm64-0.4.0.zip",
+        "size": 6986,
+        "sha256": "f23181c2123644b5aa43ce97f58231769b62b90a27e2f890b01134ba0268fb57"
       }
     },
     "apple-us-qwerty": {
       "x64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-us-qwerty-x64-0.3.0.zip",
-        "size": 6999,
-        "sha256": "88635c963cebea7f6d044353d5208722399f2c31b827c1dd9504cd443c97d996"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-us-qwerty-x64-0.4.0.zip",
+        "size": 6997,
+        "sha256": "eac37e0b0596c9761242c7e767bb5a23b16717839258a6963d82f60469fd654f"
       },
       "arm64": {
-        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-us-qwerty-arm64-0.3.0.zip",
-        "size": 6979,
-        "sha256": "4597f51a82968ed70032692af82d28ef95148ddf22508767da8c094248af8579"
+        "url": "https://dl.mindvisionstudio.com/magicwindows-apple-us-qwerty-arm64-0.4.0.zip",
+        "size": 6977,
+        "sha256": "a923fb0725c5eeb63884c9ca4b62b90cefa5c59bdb2fea6b7f4d0d5aedbf8a27"
       }
     }
   }
