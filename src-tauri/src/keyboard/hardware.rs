@@ -6,9 +6,12 @@
 //!   - the same flow's polling watcher (waits for a new device to show up
 //!     after the user opens the Windows Bluetooth panel)
 //!
-//! Apple's USB Vendor ID is 0x05AC. We list any "Keyboard" PnP device whose
-//! HardwareID contains `VID_05AC`. Bluetooth and USB Apple keyboards both
-//! match this filter on Windows 10/11.
+//! Apple uses two vendor IDs depending on transport: `05AC` over USB
+//! (`HID\VID_05AC&...`) and `004C` over Bluetooth (`HID\{...}_VID&0001004C_...`,
+//! where `0001` is the Bluetooth-SIG source prefix). We list any "Keyboard" PnP
+//! device whose HardwareID carries either vendor — or whose FriendlyName looks
+//! Apple/Magic — so both USB and Bluetooth Magic Keyboards are detected on
+//! Windows 10/11.
 
 use serde::Serialize;
 
@@ -26,17 +29,23 @@ pub struct AppleKeyboardInfo {
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn enumerate_apple_keyboards() -> Result<Vec<AppleKeyboardInfo>, String> {
-    use std::process::Command;
-
+    // Apple vendor IDs: 05AC (USB) and 004C (Bluetooth). The optional 4-hex
+    // group after the VID separator absorbs the Bluetooth-SIG source prefix
+    // (e.g. `VID&0001004C`); USB IDs (`VID_05AC`) have no prefix. The
+    // FriendlyName fallback catches BTHENUM "Magic Keyboard" entries that carry
+    // no VID at all.
     let script = r#"
 $ErrorActionPreference = 'Stop'
 $devices = Get-PnpDevice -Class Keyboard -PresentOnly -ErrorAction SilentlyContinue |
-    Where-Object { ($_.HardwareID -join ';') -match 'VID_05AC' } |
+    Where-Object {
+        $hwid = ($_.HardwareID -join ';')
+        ($hwid -match 'VID[_&]([0-9A-Fa-f]{4})?(05AC|004C)') -or ($_.FriendlyName -match 'Apple|Magic')
+    } |
     Select-Object FriendlyName, @{Name='HardwareID';Expression={($_.HardwareID -join ';')}}, Status
 ConvertTo-Json -Depth 3 -Compress -InputObject @($devices)
 "#;
 
-    let output = Command::new("powershell")
+    let output = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
         .output()
         .map_err(|e| format!("spawn powershell: {e}"))?;

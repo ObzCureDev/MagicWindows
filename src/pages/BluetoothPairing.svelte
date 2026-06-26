@@ -14,6 +14,11 @@
   let timeoutId: number | null = null;
   let successTimerId: number | null = null;
 
+  // Guards against overlapping probes: each probe spawns a ~1s PowerShell call,
+  // and setInterval does not wait for the async callback. Without this, a slow
+  // enumeration lets timer ticks stack multiple concurrent PowerShell processes.
+  let probing = false;
+
   const POLL_MS = 2000;
   const TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -25,11 +30,15 @@
   }
 
   async function probe(): Promise<boolean> {
+    if (probing) return false;
+    probing = true;
     try {
       const kbds = await invoke<AppleKeyboardInfo[]>("enumerate_apple_keyboards");
       return kbds.length > 0;
     } catch {
       return false;
+    } finally {
+      probing = false;
     }
   }
 

@@ -6,6 +6,7 @@ pub mod health_check;
 pub mod install;
 pub mod klc;
 pub mod modifiers;
+pub mod proc;
 pub mod scancode_map;
 
 use serde::{Deserialize, Serialize};

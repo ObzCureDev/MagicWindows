@@ -11,8 +11,6 @@ use super::scancode_map::{
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn read_scancode_map() -> Result<ModifierState, String> {
-    use std::process::Command;
-
     // Read the REG_BINARY value as base64 so it survives the PowerShell -> stdout pipe cleanly.
     let script = r#"
 $bytes = (Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Keyboard Layout' `
@@ -24,7 +22,7 @@ if ($bytes) {
 }
 "#;
 
-    let output = Command::new("powershell")
+    let output = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
         .output()
         .map_err(|e| format!("Failed to invoke powershell: {e}"))?;

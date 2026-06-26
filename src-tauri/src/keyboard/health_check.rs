@@ -39,8 +39,6 @@ pub struct ControlKeyReport {
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn health_check_control_keys(klid: String) -> Result<ControlKeyReport, String> {
-    use std::process::Command;
-
     // Sanity-check the KLID before injecting it into a PowerShell string.
     // KLIDs are 8 hex characters (the MagicWindows ones start with 'a').
     if klid.len() != 8 || !klid.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -97,7 +95,7 @@ $o | ConvertTo-Json -Compress
 "#
     );
 
-    let output = Command::new("powershell")
+    let output = super::proc::powershell()
         .args([
             "-ExecutionPolicy",
             "Bypass",

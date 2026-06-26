@@ -4,8 +4,6 @@
 
 #[cfg(target_os = "windows")]
 use super::InstalledLayoutInfo;
-#[cfg(target_os = "windows")]
-use std::process::Command;
 
 /// Tauri command: return a pre-formatted Markdown block suitable for pasting
 /// into an email body. Called by the ElevatedErrorPanel's "Send bug report".
@@ -19,7 +17,7 @@ pub fn collect_diagnostics() -> Result<String, String> {
     out.push_str(&format!("**App version:** {}\n", env!("CARGO_PKG_VERSION")));
 
     // OS version via `cmd /c ver`.
-    match Command::new("cmd").args(["/c", "ver"]).output() {
+    match super::proc::hidden_command("cmd").args(["/c", "ver"]).output() {
         Ok(o) if o.status.success() => {
             let v = String::from_utf8_lossy(&o.stdout).trim().to_string();
             out.push_str(&format!("**OS:** {v}\n"));
@@ -28,7 +26,7 @@ pub fn collect_diagnostics() -> Result<String, String> {
     }
 
     // Active HKL via a P/Invoke to GetKeyboardLayout(0).
-    match Command::new("powershell")
+    match super::proc::powershell()
         .args([
             "-ExecutionPolicy", "Bypass", "-NoProfile", "-Command",
             r#"

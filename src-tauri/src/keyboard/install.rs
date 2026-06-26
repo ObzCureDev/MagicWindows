@@ -209,7 +209,6 @@ Write-Host 'Keyboard layout installed successfully.'
 /// Unprivileged PowerShell read.
 #[cfg(target_os = "windows")]
 fn read_install_markers_from_registry() -> Result<(String, String, Vec<String>), String> {
-    use std::process::Command;
     let script = r#"
 $key = 'HKLM:\SOFTWARE\MagicWindows'
 if (-not (Test-Path -LiteralPath $key)) { Write-Output 'NONE'; exit 0 }
@@ -220,7 +219,7 @@ if (-not $klid -or -not $langTag) { Write-Output 'NONE'; exit 0 }
 if ($null -eq $stale) { $stale = '' }
 Write-Output "$klid|$langTag|$stale"
 "#;
-    let out = Command::new("powershell")
+    let out = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
         .output()
         .map_err(|e| format!("powershell invoke failed: {e}"))?;
@@ -259,7 +258,6 @@ fn activate_for_user(
     stale_klids: &[String],
 ) -> Result<(), String> {
     use std::fs;
-    use std::process::Command;
 
     let ps_path     = work_dir.join("activate.ps1");
     let stdout_path = work_dir.join("activate_stdout.txt");
@@ -435,7 +433,7 @@ Write-Host "[activate] done"
     write_ps_with_bom(&ps_path, &script)
         .map_err(|e| format!("Failed to write activate script: {e}"))?;
 
-    let output = Command::new("powershell")
+    let output = super::proc::powershell()
         .args([
             "-ExecutionPolicy", "Bypass",
             "-NoProfile",
@@ -559,7 +557,6 @@ Write-Host 'Keyboard layout uninstalled successfully.'
 /// Called by both the layout-uninstall path and the new uninstall-by-klid path.
 #[cfg(target_os = "windows")]
 fn purge_hkcu_klids(work_dir: &std::path::Path, klids: &[String]) -> Result<(), String> {
-    use std::process::Command;
 
     if klids.is_empty() {
         return Ok(());
@@ -612,7 +609,7 @@ try {{
 
     let ps_path = work_dir.join("hkcu_purge.ps1");
     write_ps_with_bom(&ps_path, &script).map_err(|e| format!("write purge script: {e}"))?;
-    let out = Command::new("powershell")
+    let out = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-File", &ps_path.to_string_lossy()])
         .output()
         .map_err(|e| format!("spawn purge powershell: {e}"))?;
@@ -626,7 +623,6 @@ try {{
 /// (written by the elevated uninstall step) and purges HKCU accordingly.
 #[cfg(target_os = "windows")]
 fn purge_hkcu_after_uninstall(work_dir: &std::path::Path) -> Result<(), String> {
-    use std::process::Command;
 
     let read_script = r#"
 $key = 'HKLM:\SOFTWARE\MagicWindows'
@@ -634,7 +630,7 @@ if (-not (Test-Path -LiteralPath $key)) { Write-Host ''; exit 0 }
 $v = (Get-ItemProperty -LiteralPath $key -Name 'LastUninstalledKLIDs' -ErrorAction SilentlyContinue).LastUninstalledKLIDs
 if ($v) { Write-Host $v }
 "#;
-    let out = Command::new("powershell")
+    let out = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", read_script])
         .output()
         .map_err(|e| format!("spawn read marker: {e}"))?;
@@ -750,7 +746,6 @@ fn run_elevated_ps(
     ps_script: &str,
 ) -> Result<String, String> {
     use std::fs;
-    use std::process::Command;
 
     let ps_path         = work_dir.join(format!("{label}.ps1"));
     let transcript_path = work_dir.join(format!("{label}_transcript.txt"));
@@ -817,7 +812,7 @@ exit $proc.ExitCode
         ps = ps_path.display(),
     );
 
-    let output = Command::new("powershell")
+    let output = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", &launcher])
         .output()
         .map_err(|e| format!("Failed to run PowerShell launcher: {e}"))?;
@@ -891,7 +886,6 @@ pub fn run_elevated_ps_for_modifiers(
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn list_all_installed_layouts() -> Result<Vec<super::InstalledLayoutInfo>, String> {
-    use std::process::Command;
 
     // PowerShell is the simplest way to iterate HKLM Keyboard Layouts without
     // pulling in the `windows` crate. HKLM and HKCU are both user-readable so
@@ -925,7 +919,7 @@ Get-ChildItem -LiteralPath $root -ErrorAction SilentlyContinue | ForEach-Object 
 }
 "#;
 
-    let output = Command::new("powershell")
+    let output = super::proc::powershell()
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", script])
         .output()
         .map_err(|e| format!("Failed to invoke powershell: {e}"))?;
