@@ -7,7 +7,7 @@
 **Install Apple Magic Keyboard layouts on Windows** | **Installer les dispositions Apple Magic Keyboard sur Windows**
 
 [![Download](https://img.shields.io/github/v/release/ObzCureDev/MagicWindows?label=Download&color=007aff)](https://github.com/ObzCureDev/MagicWindows/releases/latest)
-[![Build](https://github.com/ObzCureDev/Magicwindows/actions/workflows/build.yml/badge.svg)](https://github.com/ObzCureDev/Magicwindows/actions/workflows/build.yml)
+[![Build](https://github.com/ObzCureDev/MagicWindows/actions/workflows/build.yml/badge.svg)](https://github.com/ObzCureDev/MagicWindows/actions/workflows/build.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 ---
@@ -81,9 +81,15 @@ A quick tour of the installation flow — from detection to a working Apple layo
 
 ### Download | Télécharger
 
-> **[Download the latest installer](https://github.com/ObzCureDev/MagicWindows/releases/latest)** (Windows x64 & ARM64)
+Two ways to get MagicWindows:
+
+> **[Download the latest installer](https://github.com/ObzCureDev/MagicWindows/releases/latest)** — the full app (Windows x64 & ARM64; NSIS installer or portable ZIP).
 >
-> *[Télécharger le dernier installeur](https://github.com/ObzCureDev/MagicWindows/releases/latest)* (Windows x64 & ARM64)
+> *[Télécharger le dernier installeur](https://github.com/ObzCureDev/MagicWindows/releases/latest)* — l'app complète (Windows x64 & ARM64 ; installeur NSIS ou ZIP portable).
+
+> **[magicwindows.mindvisionstudio.com](https://magicwindows.mindvisionstudio.com)** — or grab a **single layout directly**, no app required: each is a small ZIP with the keyboard **DLL** plus one-click `Install-Layout` / `Uninstall-Layout` scripts (x64 & ARM64).
+>
+> *Ou récupérez une **disposition seule, directement** sur [magicwindows.mindvisionstudio.com](https://magicwindows.mindvisionstudio.com), sans l'app : chaque disposition est un petit ZIP avec la **DLL** clavier et les scripts `Install-Layout` / `Uninstall-Layout` (x64 & ARM64).*
 
 ### Install | Installer
 
@@ -93,6 +99,20 @@ A quick tour of the installation flow — from detection to a working Apple layo
 4. Go to **Settings > Time & Language > Language & Region > Keyboard** | *Paramètres > Heure et langue > Langue et région > Clavier*
 5. Your new layout is now available | *Votre nouvelle disposition est disponible*
 6. Use **Win+Space** to switch between keyboards | *Utilisez Win+Espace pour basculer*
+
+### "Windows protected your PC" — the unsigned-app warning | L'avertissement Windows
+
+The first time you run the installer, Windows SmartScreen shows a blue **"Windows protected your PC"** dialog with an **"Unknown publisher"** notice. That's expected: **MagicWindows is not code-signed.** A Windows code-signing certificate costs a few hundred euros a year — not worth it for a free, open-source tool, so we skip it.
+
+It's safe to continue: click **More info → Run anyway**. The entire source is on GitHub, and every release installer ships with a **GitHub-attested build provenance** you can verify, so you can confirm the binary was built from this repo by CI.
+
+**Prefer not to run an unsigned `.exe`?** You don't have to. Download your layout's ZIP directly from **[magicwindows.mindvisionstudio.com](https://magicwindows.mindvisionstudio.com)** — it contains just the keyboard **DLL** and a small `Install-Layout` script that registers it. No app, no installer.
+
+> **L'avertissement Windows** : au premier lancement de l'installeur, Windows SmartScreen affiche **« Windows a protégé votre ordinateur »** avec la mention **« Éditeur inconnu »**. C'est normal : **MagicWindows n'est pas signé.** Un certificat de signature de code Windows coûte plusieurs centaines d'euros par an — pas rentable pour un outil libre et gratuit, donc on s'en passe.
+>
+> C'est sans danger : cliquez sur **Informations complémentaires → Exécuter quand même**. Tout le code source est sur GitHub, et chaque installeur publié porte une **attestation de provenance GitHub** vérifiable — vous pouvez confirmer que le binaire a bien été compilé depuis ce dépôt par la CI.
+>
+> **Vous préférez ne pas lancer un `.exe` non signé ?** Pas obligé : téléchargez le ZIP de votre disposition sur **[magicwindows.mindvisionstudio.com](https://magicwindows.mindvisionstudio.com)** — il contient juste la **DLL** clavier et un petit script `Install-Layout` qui l'enregistre. Sans app, sans installeur.
 
 ## Key Differences (French AZERTY)
 
@@ -191,7 +211,7 @@ See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) for detailed instructions.
 
 ### Reporting a Key Mismatch
 
-If a key doesn't produce the expected character, [open an issue](https://github.com/ObzCureDev/Magicwindows/issues/new) with:
+If a key doesn't produce the expected character, [open an issue](https://github.com/ObzCureDev/MagicWindows/issues/new) with:
 - Your keyboard model (compact or full-size)
 - The key you pressed (physical position)
 - What character you expected (printed on keycap)
