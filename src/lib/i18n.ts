@@ -152,6 +152,10 @@ export const translations: Record<string, Record<string, unknown>> = {
       subject: "[MagicWindows Bug] {op} failed",
       bodyIntro:
         "Hello, an error occurred while running MagicWindows. Full diagnostics below — feel free to add context above.",
+      issueBodyPasted:
+        "The diagnostics were copied to your clipboard — paste them below this line, and add any context above it.\n\n---\n\n",
+      issueBodyManual:
+        "Describe what happened here. Then reopen the app, expand \"Technical details\", and paste the diagnostics below.\n\n---\n\n",
     },
     modifiers: {
       title: "Mac-style modifier keys",
@@ -383,6 +387,10 @@ export const translations: Record<string, Record<string, unknown>> = {
       subject: "[MagicWindows Bug] {op} failed",
       bodyIntro:
         "Bonjour, une erreur est survenue lors de l'utilisation de MagicWindows. Diagnostics complets ci-dessous — n'hésitez pas à ajouter du contexte au-dessus.",
+      issueBodyPasted:
+        "Les diagnostics ont été copiés dans votre presse-papier — collez-les sous cette ligne, et ajoutez du contexte au-dessus.\n\n---\n\n",
+      issueBodyManual:
+        "Décrivez ce qui s'est passé ici. Puis rouvrez l'app, ouvrez « Détails techniques » et collez les diagnostics ci-dessous.\n\n---\n\n",
     },
     modifiers: {
       title: "Touches modificateurs Mac",

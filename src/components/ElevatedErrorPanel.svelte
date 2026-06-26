@@ -43,9 +43,24 @@
         ? `\n\n**Context:**\n\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\``
         : "";
       const intro = t(appState.lang, "bugReport.bodyIntro");
-      const subject = t(appState.lang, "bugReport.subject", { op: operationName });
-      const body = `${intro}\n\n${diagnostics}${ctxJson}\n\n--- Votre commentaire ---\n\n`;
-      const url = `mailto:bug@mindvisionstudio.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      const fullReport = `${intro}\n\n**Operation:** ${operationName}\n\n${diagnostics}${ctxJson}`;
+
+      // The full diagnostics (transcript tail included) are too large to carry
+      // reliably in an issue URL, so push them to the clipboard and have the
+      // user paste them into the pre-filled GitHub issue.
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(fullReport);
+        copied = true;
+      } catch {
+        copied = false;
+      }
+
+      const title = t(appState.lang, "bugReport.subject", { op: operationName });
+      const issueBody = t(appState.lang, copied ? "bugReport.issueBodyPasted" : "bugReport.issueBodyManual");
+      const url =
+        "https://github.com/ObzCureDev/MagicWindows/issues/new" +
+        `?title=${encodeURIComponent(title)}&body=${encodeURIComponent(issueBody)}`;
       const { open } = await import("@tauri-apps/plugin-shell");
       await open(url);
     } catch (e) {

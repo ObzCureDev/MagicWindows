@@ -156,8 +156,47 @@ Write-Host "Markers written to $markerKey (stale KLIDs: $staleJoined)"
 $dllFileName = "$DllName.dll"
 $sys32       = Join-Path $env:SystemRoot 'System32'
 $destSys32   = Join-Path $sys32 $dllFileName
-Write-Host "Copying to $destSys32 ..."
-Copy-Item -LiteralPath $DllPath -Destination $destSys32 -Force
+
+# Clean up any DLLs stashed aside by a previous in-use swap that have since been
+# unloaded (e.g. after a reboot).
+Get-ChildItem -LiteralPath $sys32 -Filter "$dllFileName.old-*" -ErrorAction SilentlyContinue | ForEach-Object {{
+    Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+}}
+
+# The keyboard DLL may already exist in System32 and be *loaded* by the input
+# subsystem (csrss) when its layout is currently active — Windows then locks the
+# file and a plain Copy-Item -Force fails with "in use by another process".
+#   1. Identical DLL already present  -> reuse it, skip the copy.
+#   2. Different DLL, not locked      -> overwrite normally.
+#   3. Different DLL, locked (loaded) -> rename the locked file aside (NTFS lets
+#      you rename a file with open handles), then drop the new DLL into the freed
+#      name. The stashed copy is removed on the next install after a reboot.
+$needCopy = $true
+if (Test-Path -LiteralPath $destSys32) {{
+    try {{
+        $srcHash = (Get-FileHash -LiteralPath $DllPath  -Algorithm SHA256).Hash
+        $dstHash = (Get-FileHash -LiteralPath $destSys32 -Algorithm SHA256).Hash
+        if ($srcHash -eq $dstHash) {{
+            Write-Host 'DLL already present and identical - skipping copy.'
+            $needCopy = $false
+        }}
+    }} catch {{
+        # Existing DLL could not be hashed (e.g. locked); fall through to copy/swap.
+        Write-Host "Could not hash existing DLL (locked?); will copy or swap."
+    }}
+}}
+if ($needCopy) {{
+    Write-Host "Copying to $destSys32 ..."
+    try {{
+        Copy-Item -LiteralPath $DllPath -Destination $destSys32 -Force
+    }} catch {{
+        Write-Host 'Destination locked (layout loaded); swapping the old DLL aside.'
+        $stash = "$destSys32.old-$([guid]::NewGuid().ToString('n'))"
+        Move-Item -LiteralPath $destSys32 -Destination $stash -Force
+        Copy-Item -LiteralPath $DllPath -Destination $destSys32 -Force
+        Write-Host "Old DLL stashed at $stash (removed on next install after reboot)."
+    }}
+}}
 
 $wow64 = Join-Path $env:SystemRoot 'SysWOW64'
 if (Test-Path -LiteralPath $wow64) {{
