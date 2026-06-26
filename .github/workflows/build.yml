@@ -100,6 +100,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      # The cached src-tauri/target restores stale bundles from previous
+      # versions; the upload globs (*.exe / *.zip) would otherwise attach an old
+      # version's installers to a new release. Wipe the bundle dir before build.
+      - name: Clean stale bundle artifacts
+        shell: bash
+        run: rm -rf "src-tauri/target/${{ matrix.rust-target }}/release/bundle"
+
       - name: Build Tauri app
         run: npm run tauri build -- ${{ matrix.tauri-args }}
 
